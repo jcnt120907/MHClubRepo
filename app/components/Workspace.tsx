@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Gamepad2, Layers3, Trophy, UsersRound } from "lucide-react";
+import { Layers3, Trophy, UsersRound } from "lucide-react";
+import BrandMark from "./BrandMark";
 export default function Workspace({
   section,
   children,
@@ -16,14 +17,18 @@ export default function Workspace({
   return (
     <div className="shell">
       <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-icon">
-            <Gamepad2 size={25} />
-          </span>
+        <a
+          className="brand"
+          href="https://www.instagram.com/cottonstudio.mh/"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="打开棉花陪玩俱乐部 Instagram"
+        >
+          <BrandMark />
           <strong>
-            棉花<span>俱乐部</span>
+            棉花俱乐部<span>@cottonstudio.mh</span>
           </strong>
-        </div>
+        </a>
         <div className="workspace">订单与结算</div>
         <nav className="workspace-nav" aria-label="主导航">
           <Link
@@ -52,7 +57,7 @@ export default function Workspace({
           </Link>
         </nav>
         <div className="sidebar-bottom">
-          <span className="avatar">管</span>
+          <BrandMark compact />
           <div>
             管理工作台<small>本地版本 · MYR</small>
           </div>
