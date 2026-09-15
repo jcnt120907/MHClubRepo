@@ -89,7 +89,6 @@ export default function Workspace({
               排行榜
             </Link>
           </nav>
-          <span className="local-label">LOCAL WORKSPACE</span>
         </header>
         {children}
       </main>
