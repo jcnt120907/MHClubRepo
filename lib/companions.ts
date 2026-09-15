@@ -101,6 +101,8 @@ export async function listCompanions(q = "") {
             $or: [
               { name: { $regex: escaped, $options: "i" } },
               { notes: { $regex: escaped, $options: "i" } },
+              { paymentMethod: { $regex: escaped, $options: "i" } },
+              { paymentContent: { $regex: escaped, $options: "i" } },
             ],
           }
         : {}),

@@ -1,13 +1,18 @@
 import Link from "next/link";
-import { Gamepad2, Layers3, UsersRound } from "lucide-react";
+import { Gamepad2, Layers3, Trophy, UsersRound } from "lucide-react";
 export default function Workspace({
   section,
   children,
 }: {
-  section: "orders" | "companions";
+  section: "orders" | "companions" | "leaderboard";
   children: React.ReactNode;
 }) {
-  const title = section === "orders" ? "订单管理" : "陪陪管理";
+  const title =
+    section === "orders"
+      ? "订单管理"
+      : section === "companions"
+        ? "陪陪管理"
+        : "排行榜";
   return (
     <div className="shell">
       <aside className="sidebar">
@@ -37,6 +42,14 @@ export default function Workspace({
             <UsersRound size={19} />
             陪陪管理<span>02</span>
           </Link>
+          <Link
+            href="/leaderboard"
+            className={section === "leaderboard" ? "nav-active" : "nav-item"}
+            aria-current={section === "leaderboard" ? "page" : undefined}
+          >
+            <Trophy size={19} />
+            单量排行榜<span>03</span>
+          </Link>
         </nav>
         <div className="sidebar-bottom">
           <span className="avatar">管</span>
@@ -63,6 +76,12 @@ export default function Workspace({
               aria-current={section === "companions" ? "page" : undefined}
             >
               陪陪管理
+            </Link>
+            <Link
+              href="/leaderboard"
+              aria-current={section === "leaderboard" ? "page" : undefined}
+            >
+              排行榜
             </Link>
           </nav>
           <span className="local-label">LOCAL WORKSPACE</span>

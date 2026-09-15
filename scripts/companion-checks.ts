@@ -19,8 +19,12 @@ export async function companionChecks() {
   const person = await createCompanion({
     name: " 新陪陪QA ",
     notes: "端游与语聊",
+    paymentMethod: "TNG eWallet",
+    paymentContent: "0123456789",
   });
   assert.equal(person.name, "新陪陪QA");
+  assert.equal(person.paymentMethod, "TNG eWallet");
+  assert.equal(person.paymentContent, "0123456789");
   await assert.rejects(
     () => createCompanion({ name: "新陪陪QA", notes: "duplicate" }),
     (e) => e instanceof CompanionError && e.status === 409,
@@ -34,7 +38,11 @@ export async function companionChecks() {
   await updateCompanion(person._id, {
     name: "新陪陪改名QA",
     notes: "改名后的备注",
+    paymentMethod: "银行转账",
+    paymentContent: "新账号",
+    paymentImage: "",
   });
+  assert.equal((await getCompanion(person._id))?.paymentMethod, "银行转账");
   assert.equal((await getCompanion(person._id))?.name, "新陪陪改名QA");
   assert.equal((await listCompanions("改名后的备注")).length, 1);
   const db = await database();

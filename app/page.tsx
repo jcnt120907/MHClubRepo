@@ -91,6 +91,7 @@ export default function Page() {
     [revision, setRevision] = useState(0),
     [editor, setEditor] = useState<Order | "new" | null>(null),
     [deleting, setDeleting] = useState<Order | null>(null),
+    [paymentFor, setPaymentFor] = useState<Companion | null>(null),
     [busy, setBusy] = useState(false),
     [toast, setToast] = useState("");
   const update = (k: keyof Filters, v: string) => {
@@ -139,6 +140,18 @@ export default function Page() {
     setRevision((v) => v + 1);
     setToast(message);
   };
+  async function showPayment(name: string) {
+    try {
+      const r = await fetch("/api/companions?q=" + encodeURIComponent(name));
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      const member = d.items.find((m: Companion) => m.name === name);
+      if (!member) throw new Error("找不到这位陪陪的付款资料。");
+      setPaymentFor(member);
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : "付款资料加载失败");
+    }
+  }
   async function remove() {
     if (!deleting) return;
     setBusy(true);
@@ -393,12 +406,16 @@ export default function Page() {
                           </small>
                         </td>
                         <td>
-                          <div className="person">
+                          <button
+                            className="person payment-link"
+                            onClick={() => showPayment(o.companion)}
+                            aria-label={"查看 " + o.companion + " 的付款资料"}
+                          >
                             <span className={"person-icon " + o.type}>
                               {o.companion.slice(0, 1)}
                             </span>
                             <b>{o.companion}</b>
-                          </div>
+                          </button>
                         </td>
                         <td>
                           <span>{o.service}</span>
@@ -534,6 +551,36 @@ export default function Page() {
               </button>
               <button className="danger" disabled={busy} onClick={remove}>
                 {busy ? "删除中…" : "确认删除"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+      {paymentFor && (
+        <Modal
+          title={"付款资料 · " + paymentFor.name}
+          onClose={() => setPaymentFor(null)}
+        >
+          <div className="payment-details">
+            <div>
+              <span>付款方式</span>
+              <strong>{paymentFor.paymentMethod || "未填写"}</strong>
+            </div>
+            <div>
+              <span>付款内容</span>
+              <strong className="payment-text">
+                {paymentFor.paymentContent || "未填写"}
+              </strong>
+            </div>
+            {paymentFor.paymentImage && (
+              <img src={paymentFor.paymentImage} alt={paymentFor.name + " 的付款图片"} />
+            )}
+            {!paymentFor.paymentContent && !paymentFor.paymentImage && (
+              <p className="muted">这位陪陪暂未填写付款资料。</p>
+            )}
+            <div className="dialog-actions">
+              <button className="primary" onClick={() => setPaymentFor(null)}>
+                关闭
               </button>
             </div>
           </div>

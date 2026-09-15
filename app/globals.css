@@ -1259,6 +1259,11 @@ th,
 .rank-person>div{text-align:right}.rank-person b{font-size:18px}.rank-person small{font-size:11px;color:#8b95a6;font-weight:400}.rank-person>div>span{display:block;font-size:12px;color:#7a8698;margin-top:4px}
 .rank-empty{padding:22px;text-align:center;color:#8793a5}
 .performance-cell b,.performance-cell small{display:block}.performance-cell small{margin-top:5px;color:#738095}
+.payment-link{border:0;background:transparent;padding:0;text-align:left;cursor:pointer;font:inherit;color:inherit}.payment-link:hover b{color:#3564d7;text-decoration:underline}
+.payment-summary small{display:flex;align-items:center;gap:4px;color:#657999;margin-top:5px}
+.payment-image-preview{display:flex;align-items:flex-start;gap:14px;border:1px solid #e4e9f0;border-radius:10px;padding:10px;margin:8px 0 16px}.payment-image-preview img{display:block;max-width:180px;max-height:180px;border-radius:6px;object-fit:contain;background:#f6f8fb}
+.payment-details{display:grid;gap:15px}.payment-details>div:not(.dialog-actions){display:grid;gap:5px;padding:12px 14px;background:#f7f9fc;border-radius:10px}.payment-details span{font-size:12px;color:#778399}.payment-text{white-space:pre-wrap;overflow-wrap:anywhere}.payment-details>img{max-width:100%;max-height:430px;justify-self:center;border:1px solid #e5eaf1;border-radius:10px;object-fit:contain}
+@media(max-width:760px){.payment-table th:nth-child(4),.payment-table td:nth-child(4){display:none}.payment-table th:nth-child(2){width:20%}.payment-table th:nth-child(3){width:30%}.payment-table .person-icon{display:none}}
 @media(max-width:760px){
 .rank-grid{grid-template-columns:1fr;padding:4px 14px}.rank-caption{margin:12px 14px}
 .roster-table.performance-table th:nth-child(3),.roster-table.performance-table td:nth-child(3),.roster-table.performance-table th:nth-child(4),.roster-table.performance-table td:nth-child(4){display:table-cell}
