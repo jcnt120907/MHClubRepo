@@ -3,6 +3,12 @@ import { database } from "./mongo";
 export { database } from "./mongo";
 import { resolveOrderCompanion } from "./companions";
 import { inputSchema, calculate, orderNumber, type Input } from "./domain";
+const globalOrderQuery = globalThis as unknown as {
+  companionOptions?: { names: string[]; expiresAt: number };
+};
+function clearCompanionOptions() {
+  globalOrderQuery.companionOptions = undefined;
+}
 export async function prepare() {
   const db = await database();
   await db.collection("orders").createIndex({ orderNo: 1 }, { unique: true });
@@ -10,6 +16,12 @@ export async function prepare() {
     .collection("orders")
     .createIndex({ sourceKey: 1 }, { unique: true, sparse: true });
   await db.collection("orders").createIndex({ date: -1, time: -1 });
+  await Promise.all([
+    db.collection("orders").createIndex({ companion: 1, date: -1, time: -1 }),
+    db.collection("orders").createIndex({ type: 1, date: -1, time: -1 }),
+    db.collection("orders").createIndex({ service: 1, date: -1, time: -1 }),
+    db.collection("orders").createIndex({ status: 1, date: -1, time: -1 }),
+  ]);
   return db;
 }
 export async function createOrder(
@@ -35,6 +47,7 @@ export async function createOrder(
     updatedAt: now,
   };
   const r = await db.collection("orders").insertOne(doc);
+  clearCompanionOptions();
   return { ...doc, _id: r.insertedId.toString() };
 }
 export async function updateOrder(id: string, raw: unknown) {
@@ -47,13 +60,15 @@ export async function updateOrder(id: string, raw: unknown) {
     companionId: old.companionId,
   });
   if (old.type !== v.type) throw new Error("不能更改订单类型，请重新开单");
-  return db
+  const result = await db
     .collection("orders")
     .findOneAndUpdate(
       { _id: old._id },
       { $set: { ...v, ...calculate(v), updatedAt: new Date().toISOString() } },
       { returnDocument: "after" },
     );
+  clearCompanionOptions();
+  return result;
 }
 export function filterFor(p: URLSearchParams) {
   const f: Filter<Document> = {};
@@ -82,6 +97,8 @@ export async function listOrders(p: URLSearchParams) {
     Math.max(1, Math.min(100000, Number(p.get("page")) || 1)),
   );
   const size = 12;
+  const cachedOptions = globalOrderQuery.companionOptions;
+  const needsOptions = !cachedOptions || cachedOptions.expiresAt < Date.now();
   const [result, companions] = await Promise.all([
     db
       .collection("orders")
@@ -118,8 +135,15 @@ export async function listOrders(p: URLSearchParams) {
         },
       ])
       .toArray(),
-    db.collection("orders").distinct("companion"),
+    needsOptions
+      ? db.collection("orders").distinct("companion")
+      : Promise.resolve(cachedOptions.names),
   ]);
+  if (needsOptions)
+    globalOrderQuery.companionOptions = {
+      names: companions.sort(),
+      expiresAt: Date.now() + 60_000,
+    };
   return {
     items: result[0].items,
     summary: result[0].summary[0] || {
@@ -128,7 +152,7 @@ export async function listOrders(p: URLSearchParams) {
       wage: 0,
       remaining: 0,
     },
-    companions: companions.sort(),
+    companions,
     page,
     pageSize: size,
   };

@@ -83,6 +83,7 @@ function fresh(): Input {
 }
 export default function Page() {
   const [filters, setFilters] = useState(initialFilters),
+    [search, setSearch] = useState(initialFilters.q),
     [page, setPage] = useState(1),
     [data, setData] = useState<Data | null>(null),
     [loading, setLoading] = useState(true),
@@ -99,10 +100,19 @@ export default function Page() {
     setPage(1);
   };
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters((current) =>
+        current.q === search ? current : { ...current, q: search },
+      );
+      setPage(1);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search]);
+  useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    const timer = setTimeout(async () => {
+    (async () => {
       try {
         const p = new URLSearchParams({ ...filters, page: String(page) });
         const r = await fetch("/api/orders?" + p, {
@@ -122,9 +132,8 @@ export default function Page() {
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }, 200);
+    })();
     return () => {
-      clearTimeout(timer);
       controller.abort();
     };
   }, [filters, page, revision]);
@@ -266,8 +275,8 @@ export default function Page() {
               <input
                 aria-label="搜索订单"
                 placeholder="搜索单号、陪陪、服务或备注"
-                value={filters.q}
-                onChange={(e) => update("q", e.target.value)}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </label>
             <label className="date-filter">
@@ -297,6 +306,7 @@ export default function Page() {
               className="text-btn"
               onClick={() => {
                 setFilters({ ...initialFilters, from: "", to: "" });
+                setSearch("");
                 setPage(1);
               }}
             >
