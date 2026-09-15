@@ -26,10 +26,10 @@ try {
     gift: 100,
   });
   assert.equal(l.orderNo, "L0001");
-  await db
-    .collection("orders")
-    .deleteOne({ _id: new ObjectId(records[0]._id) });
-  assert.equal((await createOrder(input)).orderNo, "P0021");
+  const firstP = records.find((record) => record.orderNo === "P0001");
+  assert.ok(firstP);
+  await db.collection("orders").deleteOne({ _id: new ObjectId(firstP._id) });
+  assert.equal((await createOrder(input)).orderNo, "P0001");
   const edited = await updateOrder(t._id, {
     ...input,
     type: "T",
@@ -59,9 +59,6 @@ try {
   assert.equal(second.items.length, 8);
   const none = await listOrders(new URLSearchParams({ q: "不存在" }));
   assert.equal(none.summary.count, 0);
-  await db
-    .collection("counters")
-    .updateOne({ _id: "L" as never }, { $set: { seq: 9999 } });
   assert.equal(
     (
       await createOrder({
@@ -74,7 +71,7 @@ try {
         gift: 1,
       })
     ).orderNo,
-    "L10000",
+    "L0002",
   );
   const other = new MongoClient(process.env.MONGODB_URI);
   await other.connect();
@@ -103,7 +100,7 @@ try {
     "保留编辑",
   );
   console.log(
-    "Integration passed: concurrency, independent counters, immutable IDs, CRUD, filters, pagination, totals, reconnect and seed preserves edits/deletions.",
+    "Integration passed: concurrency, reusable IDs, CRUD, filters, pagination, totals, reconnect and seed preserves edits/deletions.",
   );
   await companionChecks();
   await statsChecks();

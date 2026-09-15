@@ -19,7 +19,8 @@ export const services: Record<string, number> = {
 export const types = { P: "陪玩", T: "语聊", L: "礼物" };
 export const addons = {
   night: { label: "夜单", price: 4 },
-  sweet: { label: "甜蜜 / 技术", price: 5 },
+  sweet: { label: "甜蜜", price: 5 },
+  technical: { label: "技术", price: 5 },
   voice: { label: "声优", price: 3 },
   excellent: { label: "优等", price: 2 },
   star: { label: "头牌", price: 5 },
@@ -28,7 +29,6 @@ export const addons = {
 };
 export const statuses = [
   "未标记",
-  "还没",
   "进行中",
   "可发放",
   "已付款",
@@ -79,6 +79,7 @@ export const inputSchema = z
         z.enum([
           "night",
           "sweet",
+          "technical",
           "voice",
           "excellent",
           "star",

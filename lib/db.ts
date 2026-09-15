@@ -36,25 +36,49 @@ export async function createOrder(
 ) {
   const db = await prepare();
   const v = await resolveOrderCompanion(db, inputSchema.parse(raw));
-  const c = await db
-    .collection<{ _id: string; seq: number }>("counters")
-    .findOneAndUpdate(
-      { _id: v.type },
-      { $inc: { seq: 1 } },
-      { upsert: true, returnDocument: "after" },
+  // Reuse the first gap for this type. The unique orderNo index is the
+  // concurrency guard: a competing insert retries with a freshly computed gap.
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const existing = await db
+      .collection<{ orderNo: string }>("orders")
+      .find({ type: v.type }, { projection: { orderNo: 1 } })
+      .toArray();
+    const used = new Set(
+      existing
+        .map((order) => /^.[0-9]+$/.test(order.orderNo) ? Number(order.orderNo.slice(1)) : 0)
+        .filter(Number.isSafeInteger),
     );
-  const now = new Date().toISOString();
-  const doc = {
-    ...metadata,
-    ...v,
-    ...calculate(v),
-    orderNo: orderNumber(v.type, c!.seq),
-    createdAt: now,
-    updatedAt: now,
-  };
-  const r = await db.collection("orders").insertOne(doc);
-  clearCompanionOptions();
-  return { ...doc, _id: r.insertedId.toString() };
+    let sequence = 1;
+    while (used.has(sequence)) sequence += 1;
+    const now = new Date().toISOString();
+    const doc = {
+      ...metadata,
+      ...v,
+      ...calculate(v),
+      orderNo: orderNumber(v.type, sequence),
+      createdAt: now,
+      updatedAt: now,
+    };
+    try {
+      const r = await db.collection("orders").insertOne(doc);
+      await db
+        .collection<{ _id: string; seq: number }>("counters")
+        .updateOne(
+          { _id: v.type },
+          { $max: { seq: sequence } },
+          { upsert: true },
+        );
+      clearCompanionOptions();
+      return { ...doc, _id: r.insertedId.toString() };
+    } catch (e) {
+      if (
+        !(e && typeof e === "object" && "code" in e && e.code === 11000) ||
+        attempt === 19
+      )
+        throw e;
+    }
+  }
+  throw new Error("无法生成可用单号");
 }
 export async function updateOrder(id: string, raw: unknown) {
   let v = inputSchema.parse(raw);
