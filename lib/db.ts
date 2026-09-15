@@ -2,7 +2,13 @@ import { ObjectId, type Filter, type Document } from "mongodb";
 import { database } from "./mongo";
 export { database } from "./mongo";
 import { resolveOrderCompanion } from "./companions";
-import { inputSchema, calculate, orderNumber, type Input } from "./domain";
+import {
+  inputSchema,
+  calculate,
+  orderNumber,
+  statuses,
+  type Input,
+} from "./domain";
 const globalOrderQuery = globalThis as unknown as {
   companionOptions?: { names: string[]; expiresAt: number };
 };
@@ -69,6 +75,14 @@ export async function updateOrder(id: string, raw: unknown) {
     );
   clearCompanionOptions();
   return result;
+}
+export async function updateOrderStatuses(ids: string[], status: (typeof statuses)[number]) {
+  const db = await database();
+  const result = await db.collection("orders").updateMany(
+    { _id: { $in: ids.map((id) => new ObjectId(id)) } },
+    { $set: { status, updatedAt: new Date().toISOString() } },
+  );
+  return result.modifiedCount;
 }
 export function filterFor(p: URLSearchParams) {
   const f: Filter<Document> = {};

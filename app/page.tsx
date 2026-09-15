@@ -94,7 +94,9 @@ export default function Page() {
     [deleting, setDeleting] = useState<Order | null>(null),
     [paymentFor, setPaymentFor] = useState<Companion | null>(null),
     [busy, setBusy] = useState(false),
-    [toast, setToast] = useState("");
+    [toast, setToast] = useState(""),
+    [selected, setSelected] = useState<Set<string>>(new Set()),
+    [bulkStatus, setBulkStatus] = useState<(typeof statuses)[number]>("已付款");
   const update = (k: keyof Filters, v: string) => {
     setFilters((f) => ({ ...f, [k]: v }));
     setPage(1);
@@ -143,6 +145,9 @@ export default function Page() {
       return () => clearTimeout(t);
     }
   }, [toast]);
+  useEffect(() => {
+    setSelected(new Set());
+  }, [data?.items]);
   const saved = (message: string) => {
     setEditor(null);
     setDeleting(null);
@@ -172,6 +177,35 @@ export default function Page() {
       saved("订单已删除，单号保留不再使用");
     } catch (e) {
       setToast(e instanceof Error ? e.message : "删除失败");
+    } finally {
+      setBusy(false);
+    }
+  }
+  const visibleIds = data?.items.map((order) => order._id) ?? [];
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
+  const toggleSelected = (id: string) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  async function applyBulkStatus() {
+    if (!selected.size) return;
+    setBusy(true);
+    try {
+      const r = await fetch("/api/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [...selected], status: bulkStatus }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      setSelected(new Set());
+      setRevision((value) => value + 1);
+      setToast(`已将 ${d.updated} 笔订单更新为「${bulkStatus}」`);
+    } catch (e) {
+      setToast(e instanceof Error ? e.message : "批量更新失败");
     } finally {
       setBusy(false);
     }
@@ -391,9 +425,57 @@ export default function Page() {
                 className={"table-wrap " + (loading ? "loading" : "")}
                 aria-busy={loading}
               >
+                {selected.size > 0 && (
+                  <div className="bulk-toolbar" role="region" aria-label="批量更新订单状态">
+                    <strong>已选择 {selected.size} 笔订单</strong>
+                    <select
+                      aria-label="批量设置订单状态"
+                      value={bulkStatus}
+                      disabled={busy}
+                      onChange={(e) =>
+                        setBulkStatus(
+                          e.target.value as (typeof statuses)[number],
+                        )
+                      }
+                    >
+                      {statuses.map((status) => (
+                        <option key={status}>{status}</option>
+                      ))}
+                    </select>
+                    <button
+                      className="primary bulk-apply"
+                      disabled={busy}
+                      onClick={applyBulkStatus}
+                    >
+                      {busy ? "更新中…" : "更新状态"}
+                    </button>
+                    <button
+                      className="text-btn"
+                      disabled={busy}
+                      onClick={() => setSelected(new Set())}
+                    >
+                      取消选择
+                    </button>
+                  </div>
+                )}
                 <table>
                   <thead>
                     <tr>
+                      <th className="selection-cell">
+                        <input
+                          type="checkbox"
+                          aria-label="选择本页全部订单"
+                          checked={allVisibleSelected}
+                          disabled={!visibleIds.length || loading}
+                          onChange={() =>
+                            setSelected(
+                              allVisibleSelected
+                                ? new Set()
+                                : new Set(visibleIds),
+                            )
+                          }
+                        />
+                      </th>
                       <th>单号 / 日期</th>
                       <th>陪陪</th>
                       <th>服务 / 数量</th>
@@ -408,6 +490,15 @@ export default function Page() {
                   <tbody>
                     {data?.items.map((o) => (
                       <tr key={o._id}>
+                        <td className="selection-cell">
+                          <input
+                            type="checkbox"
+                            aria-label={"选择 " + o.orderNo}
+                            checked={selected.has(o._id)}
+                            disabled={busy}
+                            onChange={() => toggleSelected(o._id)}
+                          />
+                        </td>
                         <td>
                           <span className="order-no">{o.orderNo}</span>
                           <small>

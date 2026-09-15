@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createOrder, listOrders } from "@/lib/db";
-import { ZodError } from "zod";
+import { createOrder, listOrders, updateOrderStatuses } from "@/lib/db";
+import { ZodError, z } from "zod";
 import { CompanionError } from "@/lib/companions";
+import { statuses } from "@/lib/domain";
 export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   try {
@@ -39,6 +40,33 @@ export async function POST(req: NextRequest) {
               ? 400
               : 503,
       },
+    );
+  }
+}
+const bulkStatusSchema = z.object({
+  ids: z
+    .array(z.string().regex(/^[a-f0-9]{24}$/i, "订单记录无效"))
+    .min(1, "请先选择订单")
+    .max(100, "一次最多更新 100 笔订单")
+    .transform((ids) => [...new Set(ids)]),
+  status: z.enum(statuses),
+});
+export async function PATCH(req: NextRequest) {
+  try {
+    const { ids, status } = bulkStatusSchema.parse(await req.json());
+    const updated = await updateOrderStatuses(ids, status);
+    return NextResponse.json({ updated });
+  } catch (e) {
+    return NextResponse.json(
+      {
+        error:
+          e instanceof ZodError
+            ? e.issues[0].message
+            : e instanceof SyntaxError
+              ? "请求格式无效，请提交 JSON。"
+              : "批量更新失败，请检查数据库连接。",
+      },
+      { status: e instanceof ZodError || e instanceof SyntaxError ? 400 : 503 },
     );
   }
 }
