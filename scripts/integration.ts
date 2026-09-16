@@ -53,6 +53,11 @@ try {
   assert.equal(filtered.summary.count, 20);
   assert.equal(filtered.items.length, 12);
   assert.equal(filtered.summary.total, 400);
+  assert.equal(filtered.items[0].orderNo, "P0001");
+  const dateSorted = await listOrders(
+    new URLSearchParams({ type: "P", sort: "date" }),
+  );
+  assert.equal(dateSorted.items.length, 12);
   const second = await listOrders(
     new URLSearchParams({ type: "P", page: "2" }),
   );

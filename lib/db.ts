@@ -135,6 +135,22 @@ export async function listOrders(p: URLSearchParams) {
     Math.max(1, Math.min(100000, Number(p.get("page")) || 1)),
   );
   const size = 12;
+  const sort = p.get("sort") === "date" ? "date" : "orderNo";
+  const itemSort =
+    sort === "date"
+      ? [{ $sort: { date: -1, time: -1, _id: -1 } }]
+      : [
+          {
+            $set: {
+              _orderType: { $substrBytes: ["$orderNo", 0, 1] },
+              _orderSequence: {
+                $toInt: { $substrBytes: ["$orderNo", 1, -1] },
+              },
+            },
+          },
+          { $sort: { _orderType: 1, _orderSequence: 1 } },
+          { $unset: ["_orderType", "_orderSequence"] },
+        ];
   const cachedOptions = globalOrderQuery.companionOptions;
   const needsOptions = !cachedOptions || cachedOptions.expiresAt < Date.now();
   const [result, companions] = await Promise.all([
@@ -145,7 +161,7 @@ export async function listOrders(p: URLSearchParams) {
         {
           $facet: {
             items: [
-              { $sort: { date: -1, time: -1, _id: -1 } },
+              ...itemSort,
               { $skip: (page - 1) * size },
               { $limit: size },
             ],

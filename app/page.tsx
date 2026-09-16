@@ -46,6 +46,7 @@ const initialFilters = {
   service: "",
   status: "",
   addon: "",
+  sort: "orderNo",
 };
 type Filters = typeof initialFilters;
 type Data = {
@@ -328,6 +329,17 @@ export default function Page() {
                 value={filters.to}
                 onChange={(e) => update("to", e.target.value)}
               />
+            </label>
+            <label className="sort-filter">
+              <span>排序</span>
+              <select
+                aria-label="订单排序"
+                value={filters.sort}
+                onChange={(e) => update("sort", e.target.value)}
+              >
+                <option value="orderNo">单号优先</option>
+                <option value="date">日期最新优先</option>
+              </select>
             </label>
             <button
               className={showMore ? "secondary active" : "secondary"}
@@ -712,6 +724,10 @@ function Editor({
   const [rosterError, setRosterError] = useState("");
   const [rosterLoading, setRosterLoading] = useState(true);
   const [rosterRevision, setRosterRevision] = useState(0);
+  const [companionSearch, setCompanionSearch] = useState(
+    order === "new" ? "" : order.companion,
+  );
+  const [companionPickerOpen, setCompanionPickerOpen] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     setRosterLoading(true);
@@ -734,6 +750,23 @@ function Editor({
   const set = <K extends keyof Input>(k: K, value: Input[K]) =>
     setV((prev) => ({ ...prev, [k]: value }));
   const sums = calculate(v);
+  const matchingMembers = members.filter((member) =>
+    member.name.toLocaleLowerCase().includes(companionSearch.toLocaleLowerCase()),
+  );
+  const chooseCompanion = (member: Companion) => {
+    setV((previous) => ({
+      ...previous,
+      companionId: member._id,
+      companion: member.name,
+    }));
+    setCompanionSearch(member.name);
+    setCompanionPickerOpen(false);
+  };
+  const hasSelectedCompanion =
+    Boolean(v.companionId) ||
+    (order !== "new" &&
+      v.companion === order.companion &&
+      companionSearch === order.companion);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -815,47 +848,51 @@ function Editor({
             </label>
             <div>
               <label htmlFor="order-companion">陪陪</label>
-              <select
+              <div className="companion-picker">
+              <input
                 id="order-companion"
                 required
                 disabled={rosterLoading}
-                value={v.companionId || (order !== "new" ? "__original" : "")}
+                autoComplete="off"
+                placeholder={rosterLoading ? "加载名单中…" : "输入名字搜寻陪陪"}
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={companionPickerOpen}
+                value={companionSearch}
+                onFocus={() => setCompanionPickerOpen(true)}
                 onChange={(e) => {
-                  if (
-                    order !== "new" &&
-                    e.target.value === (order.companionId || "__original")
-                  ) {
-                    setV((prev) => ({
-                      ...prev,
-                      companionId: order.companionId,
-                      companion: order.companion,
-                    }));
-                    return;
-                  }
-                  const member = members.find((m) => m._id === e.target.value);
-                  setV((prev) => ({
-                    ...prev,
+                  const query = e.target.value;
+                  setCompanionSearch(query);
+                  setCompanionPickerOpen(true);
+                  const member = members.find((m) => m.name === query);
+                  setV((previous) => ({
+                    ...previous,
                     companionId: member?._id,
                     companion: member?.name || "",
                   }));
                 }}
-              >
-                <option value="">
-                  {rosterLoading ? "加载名单中…" : "请选择陪陪"}
-                </option>
-                {order !== "new" && (
-                  <option value={order.companionId || "__original"}>
-                    {order.companion}（原订单）
-                  </option>
-                )}
-                {members
-                  .filter((m) => order === "new" || m._id !== order.companionId)
-                  .map((m) => (
-                    <option key={m._id} value={m._id}>
-                      {m.name}
-                    </option>
-                  ))}
-              </select>
+              />
+              {companionPickerOpen && !rosterLoading && (
+                <div className="companion-options" role="listbox">
+                  {matchingMembers.length ? (
+                    matchingMembers.map((member) => (
+                      <button
+                        key={member._id}
+                        type="button"
+                        role="option"
+                        aria-selected={v.companionId === member._id}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => chooseCompanion(member)}
+                      >
+                        {member.name}
+                      </button>
+                    ))
+                  ) : (
+                    <p>没有符合的陪陪</p>
+                  )}
+                </div>
+              )}
+              </div>
               <span className="roster-tools">
                 <a href="/companions" target="_blank" rel="noopener noreferrer">
                   管理名单 ↗
@@ -1038,7 +1075,7 @@ function Editor({
             disabled={
               busy ||
               rosterLoading ||
-              (order === "new" && (!v.companionId || !!rosterError))
+              (!hasSelectedCompanion || !!rosterError)
             }
           >
             {busy ? "保存中…" : "保存订单"}
