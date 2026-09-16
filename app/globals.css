@@ -1584,6 +1584,21 @@ th,
 .customer-metrics { margin-left:auto; display:flex; gap:22px; }.customer-metrics div { display:grid; gap:4px; min-width:74px; padding-left:20px; border-left:1px solid #eddce3; }.customer-metrics strong { color:#b65d81; font-size:25px; }.customer-metrics span { color:#8e7781; font-size:12px; }
 .customer-panel { border-radius:16px; }.customer-order-count { font-weight:700; color:#b65d81; font-variant-numeric:tabular-nums; }.customer-order-count small { display:inline; color:#967682; font-weight:400; }
 @media(max-width:760px){.customer-hero{padding:18px;gap:12px}.customer-hero-icon{width:42px;height:42px;border-radius:13px}.customer-hero p{font-size:12px}.customer-metrics{gap:10px}.customer-metrics div{min-width:55px;padding-left:10px}.customer-metrics strong{font-size:20px}.customer-panel th:nth-child(3),.customer-panel td:nth-child(3){display:none}}
+.customer-editor-body { padding: 25px 28px 28px; display: grid; gap: 20px; }
+.customer-editor-intro { display: flex; gap: 13px; align-items: center; padding: 15px; border: 1px solid #f1dce5; border-radius: 12px; background: #fff6f9; }
+.customer-editor-intro > span { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: #fff; color: #b65d81; }
+.customer-editor-intro strong { display: block; font-size: 14px; color: #4e3741; }
+.customer-editor-intro p { margin: 4px 0 0; color: #8b747d; font-size: 12px; line-height: 1.5; }
+.customer-field { display: grid; gap: 8px; color: #634f58; font-size: 13px; font-weight: 600; }
+.customer-field > span { display: flex; align-items: center; gap: 7px; }
+.customer-field b, .customer-field em { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-style: normal; font-weight: 500; }
+.customer-field b { color: #b54c6d; background: #fff0f5; }
+.customer-field em { color: #9a818b; background: #f6f1f3; }
+.customer-field input, .customer-field textarea { margin: 0; border: 1px solid #e8d9df; border-radius: 10px; padding: 12px 13px; color: var(--ink); box-shadow: inset 0 1px 2px rgba(86, 46, 63, .03); }
+.customer-field input:focus, .customer-field textarea:focus { outline: 0; border-color: #d98ba8; box-shadow: 0 0 0 3px rgba(217,139,168,.16); }
+.customer-editor-actions { border-top-color: #f1e4e9; padding: 17px 28px; background: #fffafd; }
+.customer-editor-actions > span { color: #8e7680; }
+@media(max-width:760px){.customer-editor-body{padding:20px}.customer-editor-actions{padding:15px 20px}.customer-editor-actions>span{display:none}}
 @media (max-width: 760px) {
   .bulk-toolbar {
     flex-wrap: wrap;
