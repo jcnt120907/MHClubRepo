@@ -58,7 +58,15 @@ const parseOne = (raw: string): Parsed => {
   if (type && date && start !== null) return { raw, requestedOrderNo, errors, warnings, input: { type, date, time: String(Math.floor(start/60)).padStart(2,"0") + ":" + String(start%60).padStart(2,"0"), companion, customerService, service, unitPrice: type === "L" ? 0 : services[service], quantity: type === "L" ? 0 : Number((minutes / 60).toFixed(2)), addons: uniqueAddons, gift: type === "L" ? amount : amount, notes: "Telegram 报单：" + raw.replace(/\s+/g," ").trim(), status: "未标记" } };
   return { raw, requestedOrderNo, errors, warnings };
 };
-const parse = (text: string) => text.split(/^\s*\d+[.、]\s*/m).filter(Boolean).map(parseOne).slice(0,100);
+// Telegram messages are often pasted as one continuous paragraph.  A new `单号`
+// is the reliable boundary, whether the sender used a numbered list or not.
+const parse = (text: string) =>
+  text
+    .split(/(?=(?:\d+[.、]\s*)?单号\s*[：:])/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map(parseOne)
+    .slice(0, 100);
 export async function POST(req: NextRequest) {
   try {
     const { text, save } = await req.json();
