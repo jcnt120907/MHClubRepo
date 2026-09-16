@@ -739,6 +739,31 @@ th {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
 }
+.sort-header {
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  font-size: inherit;
+  font-weight: inherit;
+  justify-content: flex-start;
+  text-align: inherit;
+}
+.number .sort-header {
+  justify-content: flex-end;
+}
+.sort-header span {
+  margin-left: 5px;
+  color: #bc9aa7;
+  font-size: 12px;
+}
+.sort-header.active,
+.sort-header:hover {
+  color: #ae5678;
+}
+.sort-header.active span {
+  color: #ae5678;
+}
 th:first-child,
 td:first-child {
   padding-left: 24px;

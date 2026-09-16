@@ -135,11 +135,26 @@ export async function listOrders(p: URLSearchParams) {
     Math.max(1, Math.min(100000, Number(p.get("page")) || 1)),
   );
   const size = 12;
-  const sort = p.get("sort") === "date" ? "date" : "orderNo";
+  const requestedSort = p.get("sort") || "orderNo";
+  const descending = requestedSort.endsWith("Desc");
+  const sort = requestedSort.replace(/Desc$/, "");
+  const supportedSorts = [
+    "orderNo",
+    "date",
+    "companion",
+    "service",
+    "total",
+    "wage",
+    "remaining",
+    "status",
+  ];
+  const safeSort = supportedSorts.includes(sort) ? sort : "orderNo";
+  const direction = descending ? -1 : 1;
   const itemSort =
-    sort === "date"
-      ? [{ $sort: { date: -1, time: -1, _id: -1 } }]
-      : [
+    safeSort === "date"
+      ? [{ $sort: { date: descending ? 1 : -1, time: descending ? 1 : -1, _id: descending ? 1 : -1 } }]
+      : safeSort === "orderNo"
+        ? [
           {
             $set: {
               _orderType: { $substrBytes: ["$orderNo", 0, 1] },
@@ -148,9 +163,10 @@ export async function listOrders(p: URLSearchParams) {
               },
             },
           },
-          { $sort: { _orderType: 1, _orderSequence: 1 } },
+          { $sort: { _orderType: direction, _orderSequence: direction } },
           { $unset: ["_orderType", "_orderSequence"] },
-        ];
+        ]
+        : [{ $sort: { [safeSort]: direction, _id: direction } }];
   const cachedOptions = globalOrderQuery.companionOptions;
   const needsOptions = !cachedOptions || cachedOptions.expiresAt < Date.now();
   const [result, companions] = await Promise.all([

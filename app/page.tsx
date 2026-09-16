@@ -102,6 +102,24 @@ export default function Page() {
     setFilters((f) => ({ ...f, [k]: v }));
     setPage(1);
   };
+  const toggleSort = (key: string) =>
+    update("sort", filters.sort === key ? key + "Desc" : key);
+  const sortableHeader = (key: string, label: string, numeric = false) => {
+    const descending = filters.sort === key + "Desc";
+    const active = filters.sort === key || descending;
+    return (
+      <th className={numeric ? "number" : undefined}>
+        <button
+          className={"sort-header" + (active ? " active" : "")}
+          onClick={() => toggleSort(key)}
+          aria-label={"按" + label + (descending ? "升序" : "降序") + "排序"}
+        >
+          {label}
+          <span aria-hidden="true">{active ? (descending ? "↓" : "↑") : "↕"}</span>
+        </button>
+      </th>
+    );
+  };
   useEffect(() => {
     const timer = setTimeout(() => {
       setFilters((current) =>
@@ -488,14 +506,14 @@ export default function Page() {
                           }
                         />
                       </th>
-                      <th>单号 / 日期</th>
-                      <th>陪陪</th>
-                      <th>服务 / 数量</th>
+                      {sortableHeader("orderNo", "单号 / 日期")}
+                      {sortableHeader("companion", "陪陪")}
+                      {sortableHeader("service", "服务 / 数量")}
                       <th>附加项目</th>
-                      <th className="number">总金额</th>
-                      <th className="number">陪陪工资</th>
-                      <th className="number">剩下</th>
-                      <th>状态</th>
+                      {sortableHeader("total", "总金额", true)}
+                      {sortableHeader("wage", "陪陪工资", true)}
+                      {sortableHeader("remaining", "剩下", true)}
+                      {sortableHeader("status", "状态")}
                       <th>操作</th>
                     </tr>
                   </thead>
