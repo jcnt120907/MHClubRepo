@@ -28,8 +28,11 @@ const parseOne = (raw: string): Parsed => {
   if (!companion) errors.push("找不到陪陪");
   if (!customerService) errors.push("找不到客服");
   if (!dateText) errors.push("找不到日期");
-  const start = toTime(timeText.split("-")[0] || "");
-  const end = toTime(timeText.split("-")[1] || "");
+  // Telegram sometimes turns a typed hyphen into an en dash or other separator.
+  // Read the two clock values directly instead of depending on that character.
+  const timeParts = timeText.match(/\d{1,2}:\d{2}\s*(?:am|pm)/gi) || [];
+  const start = toTime(timeParts[0] || "");
+  const end = toTime(timeParts[1] || "");
   if (start === null || end === null) errors.push("找不到有效时间");
   const addonKeys = Object.entries(addons).filter(([, addon]) => raw.includes(addon.label) || (addon.label === "夜单" && /[（(]\s*夜\s*[）)]/.test(raw))).map(([key]) => key as keyof typeof addons);
   if (companionRaw.includes("优等")) addonKeys.push("excellent");
