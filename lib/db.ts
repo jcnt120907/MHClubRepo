@@ -32,7 +32,9 @@ export async function prepare() {
   ]);
   // Run once for the existing records that were created before customer-service
   // assignment automatically meant a successful handoff.
-  const migration = await db.collection("migrations").updateOne(
+  const migration = await db
+    .collection<{ _id: string; completedAt: string }>("migrations")
+    .updateOne(
     { _id: customerHandoffMigration },
     { $setOnInsert: { completedAt: new Date().toISOString() } },
     { upsert: true },
