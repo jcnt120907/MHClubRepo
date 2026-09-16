@@ -120,7 +120,7 @@ export function filterFor(p: URLSearchParams) {
   const q = p.get("q")?.trim();
   if (q) {
     const escaped = q.slice(0, 200).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    f.$or = ["orderNo", "companion", "customerService", "service", "notes"].map((k) => ({
+    f.$or = ["orderNo", "companion", "service", "notes"].map((k) => ({
       [k]: { $regex: escaped, $options: "i" },
     }));
   }
@@ -142,27 +142,7 @@ export async function listOrders(p: URLSearchParams) {
     Math.max(1, Math.min(100000, Number(p.get("page")) || 1)),
   );
   const size = 12;
-  const requestedSort = p.get("sort") || "orderNo";
-  const descending = requestedSort.endsWith("Desc");
-  const sort = requestedSort.replace(/Desc$/, "");
-  const supportedSorts = [
-    "orderNo",
-    "date",
-    "companion",
-    "customerService",
-    "service",
-    "total",
-    "wage",
-    "remaining",
-    "status",
-  ];
-  const safeSort = supportedSorts.includes(sort) ? sort : "orderNo";
-  const direction = descending ? -1 : 1;
-  const itemSort =
-    safeSort === "date"
-      ? [{ $sort: { date: descending ? 1 : -1, time: descending ? 1 : -1, _id: descending ? 1 : -1 } }]
-      : safeSort === "orderNo"
-        ? [
+  const itemSort = [
           {
             $set: {
               _orderType: { $substrBytes: ["$orderNo", 0, 1] },
@@ -171,10 +151,9 @@ export async function listOrders(p: URLSearchParams) {
               },
             },
           },
-          { $sort: { _orderType: direction, _orderSequence: direction } },
+          { $sort: { _orderType: 1, _orderSequence: 1 } },
           { $unset: ["_orderType", "_orderSequence"] },
-        ]
-        : [{ $sort: { [safeSort]: direction, _id: direction } }];
+        ];
   const cachedOptions = globalOrderQuery.companionOptions;
   const needsOptions = !cachedOptions || cachedOptions.expiresAt < Date.now();
   const [result, companions] = await Promise.all([
