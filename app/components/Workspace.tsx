@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Layers3, Trophy, UsersRound } from "lucide-react";
+import { Headphones, Layers3, Trophy, UsersRound } from "lucide-react";
 import BrandMark from "./BrandMark";
 export default function Workspace({
   section,
   children,
 }: {
-  section: "orders" | "companions" | "leaderboard";
+  section: "orders" | "companions" | "leaderboard" | "customerServices";
   children: React.ReactNode;
 }) {
   const title =
@@ -13,7 +13,7 @@ export default function Workspace({
       ? "订单管理"
       : section === "companions"
         ? "陪陪管理"
-        : "排行榜";
+        : section === "customerServices" ? "客服管理" : "排行榜";
   return (
     <div className="shell">
       <aside className="sidebar">
@@ -55,6 +55,9 @@ export default function Workspace({
             <Trophy size={19} />
             单量排行榜<span>03</span>
           </Link>
+          <Link href="/customer-services" className={section === "customerServices" ? "nav-active" : "nav-item"} aria-current={section === "customerServices" ? "page" : undefined}>
+            <Headphones size={19} />客服管理<span>04</span>
+          </Link>
         </nav>
         <div className="sidebar-bottom">
           <BrandMark compact />
@@ -88,6 +91,7 @@ export default function Workspace({
             >
               排行榜
             </Link>
+            <Link href="/customer-services" aria-current={section === "customerServices" ? "page" : undefined}>客服</Link>
           </nav>
         </header>
         {children}

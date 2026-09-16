@@ -2,6 +2,7 @@ import { ObjectId, type Filter, type Document } from "mongodb";
 import { database } from "./mongo";
 export { database } from "./mongo";
 import { resolveOrderCompanion } from "./companions";
+import { resolveCustomerService } from "./customer-services";
 import {
   inputSchema,
   calculate,
@@ -33,9 +34,13 @@ export async function prepare() {
 export async function createOrder(
   raw: unknown,
   metadata: Record<string, unknown> = {},
+  requestedOrderNo?: string,
 ) {
   const db = await prepare();
-  const v = await resolveOrderCompanion(db, inputSchema.parse(raw));
+  let v = await resolveOrderCompanion(db, inputSchema.parse(raw));
+  v = await resolveCustomerService(v);
+  if (requestedOrderNo && (!/^[PTL]\d{4,}$/.test(requestedOrderNo) || requestedOrderNo[0] !== v.type))
+    throw new Error("Telegram 单号与订单类型不符");
   // Reuse the first gap for this type. The unique orderNo index is the
   // concurrency guard: a competing insert retries with a freshly computed gap.
   for (let attempt = 0; attempt < 20; attempt += 1) {
@@ -55,7 +60,7 @@ export async function createOrder(
       ...metadata,
       ...v,
       ...calculate(v),
-      orderNo: orderNumber(v.type, sequence),
+      orderNo: requestedOrderNo || orderNumber(v.type, sequence),
       createdAt: now,
       updatedAt: now,
     };
@@ -72,6 +77,7 @@ export async function createOrder(
       return { ...doc, _id: r.insertedId.toString() };
     } catch (e) {
       if (
+        requestedOrderNo ||
         !(e && typeof e === "object" && "code" in e && e.code === 11000) ||
         attempt === 19
       )
@@ -89,6 +95,7 @@ export async function updateOrder(id: string, raw: unknown) {
     companion: old.companion,
     companionId: old.companionId,
   });
+  v = await resolveCustomerService(v);
   if (old.type !== v.type) throw new Error("不能更改订单类型，请重新开单");
   const result = await db
     .collection("orders")
@@ -113,11 +120,11 @@ export function filterFor(p: URLSearchParams) {
   const q = p.get("q")?.trim();
   if (q) {
     const escaped = q.slice(0, 200).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    f.$or = ["orderNo", "companion", "service", "notes"].map((k) => ({
+    f.$or = ["orderNo", "companion", "customerService", "service", "notes"].map((k) => ({
       [k]: { $regex: escaped, $options: "i" },
     }));
   }
-  for (const k of ["type", "companion", "service", "status"])
+  for (const k of ["type", "companion", "customerService", "service", "status"])
     if (p.get(k)) f[k] = p.get(k);
   if (p.get("from") || p.get("to"))
     f.date = {
@@ -142,6 +149,7 @@ export async function listOrders(p: URLSearchParams) {
     "orderNo",
     "date",
     "companion",
+    "customerService",
     "service",
     "total",
     "wage",

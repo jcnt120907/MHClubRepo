@@ -1564,6 +1564,13 @@ th,
   color: var(--muted);
   font-size: 12px;
 }
+.heading-actions { display: flex; gap: 10px; align-items: center; }
+.telegram-input { width: 100%; resize: vertical; line-height: 1.7; }
+.import-preview { display: grid; gap: 8px; max-height: 280px; overflow: auto; }
+.import-row { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid #f0dce5; border-radius: 9px; background: #fffafc; }
+.import-row.invalid { border-color: #e8acac; background: #fff7f7; }
+.import-row span { color: #654c56; font-size: 12px; }
+@media (max-width: 760px) { .heading-actions { gap: 7px; } .heading-actions .secondary, .heading-actions .primary { padding: 10px; font-size: 12px; } }
 @media (max-width: 760px) {
   .bulk-toolbar {
     flex-wrap: wrap;

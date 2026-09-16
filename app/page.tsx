@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Workspace from "./components/Workspace";
 import Modal from "./components/Modal";
 import type { Companion } from "@/lib/companion-domain";
+import type { CustomerService } from "@/lib/customer-service-domain";
 import {
   Plus,
   Search,
@@ -21,6 +22,7 @@ import {
   RefreshCw,
   Wallet,
   Coins,
+  ClipboardPaste,
 } from "lucide-react";
 import {
   addons,
@@ -73,6 +75,7 @@ function fresh(): Input {
       hour12: false,
     }).format(now),
     companion: "",
+    customerService: "",
     service: "手游",
     unitPrice: 16,
     quantity: 1,
@@ -98,6 +101,7 @@ export default function Page() {
     [toast, setToast] = useState(""),
     [selected, setSelected] = useState<Set<string>>(new Set()),
     [bulkStatus, setBulkStatus] = useState<(typeof statuses)[number]>("已付款");
+  const [telegramImport, setTelegramImport] = useState(false);
   const update = (k: keyof Filters, v: string) => {
     setFilters((f) => ({ ...f, [k]: v }));
     setPage(1);
@@ -239,10 +243,15 @@ export default function Page() {
             <h1>陪玩单管理</h1>
             <p>管理陪玩、语聊与礼物订单，查看收入和陪陪工资。</p>
           </div>
-          <button className="primary" onClick={() => setEditor("new")}>
-            <Plus size={18} />
-            新增订单
-          </button>
+          <div className="heading-actions">
+            <button className="secondary" onClick={() => setTelegramImport(true)}>
+              <ClipboardPaste size={17} />批量报单
+            </button>
+            <button className="primary" onClick={() => setEditor("new")}>
+              <Plus size={18} />
+              新增订单
+            </button>
+          </div>
         </div>
         <section className="stats" aria-label="筛选结果汇总">
           <div className="stat">
@@ -508,6 +517,7 @@ export default function Page() {
                       </th>
                       {sortableHeader("orderNo", "单号 / 日期")}
                       {sortableHeader("companion", "陪陪")}
+                      {sortableHeader("customerService", "客服")}
                       {sortableHeader("service", "服务 / 数量")}
                       <th>附加项目</th>
                       {sortableHeader("total", "总金额", true)}
@@ -548,6 +558,7 @@ export default function Page() {
                             <b>{o.companion}</b>
                           </button>
                         </td>
+                        <td>{o.customerService || <span className="muted">—</span>}</td>
                         <td>
                           <span>{o.service}</span>
                           <small>
@@ -664,6 +675,16 @@ export default function Page() {
           }
         />
       )}
+      {telegramImport && (
+        <TelegramImport
+          onClose={() => setTelegramImport(false)}
+          onSaved={(message) => {
+            setTelegramImport(false);
+            setRevision((value) => value + 1);
+            setToast(message);
+          }}
+        />
+      )}
       {deleting && (
         <Modal onClose={() => !busy && setDeleting(null)} title="删除订单">
           <div className="confirm">
@@ -726,6 +747,31 @@ export default function Page() {
     </Workspace>
   );
 }
+function TelegramImport({
+  onClose,
+  onSaved,
+}: {
+  onClose: () => void;
+  onSaved: (message: string) => void;
+}) {
+  const [text, setText] = useState("");
+  const [items, setItems] = useState<Array<{ requestedOrderNo?: string; input?: Input; errors: string[]; warnings: string[] }>>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const preview = async (save = false) => {
+    setBusy(true); setError("");
+    try {
+      const response = await fetch("/api/orders/import", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, save }) });
+      const data = await response.json();
+      if (data.items) setItems(data.items);
+      if (!response.ok) throw new Error(data.error);
+      if (save) onSaved("已从 Telegram 导入 " + data.created + " 笔订单");
+    } catch (e) { setError(e instanceof Error ? e.message : "解析失败"); }
+    finally { setBusy(false); }
+  };
+  const valid = items.length > 0 && items.every((item) => !item.errors.length);
+  return <Modal title="Telegram 批量报单" onClose={() => !busy && onClose()}><div className="form-body"><p className="field-help">贴上多笔 Telegram 报单，系统会保留单号、自动计算时长与附加项目；新陪陪会自动加入名单。</p><textarea className="telegram-input" rows={9} placeholder="1. 单号：P0006 陪陪：小酒窝 ... 日期：17/9/2026" value={text} onChange={e => { setText(e.target.value); setItems([]); }}/>{items.length > 0 && <div className="import-preview">{items.map((item,index)=><div className={item.errors.length ? "import-row invalid" : "import-row"} key={index}><strong>{item.requestedOrderNo || "未识别单号"}</strong>{item.input && <span>{item.input.companion} · {item.input.customerService} · {item.input.service} · {item.input.quantity || "礼物"} · RM {item.input.gift || item.input.unitPrice}</span>}{item.errors.map(message=><small className="field-error" key={message}>{message}</small>)}{item.warnings.map(message=><small className="field-help" key={message}>{message}</small>)}</div>)}</div>}{error&&<div className="form-error">{error}</div>}</div><div className="dialog-actions"><button className="secondary" disabled={busy} onClick={onClose}>取消</button><button className="secondary" disabled={busy||!text.trim()} onClick={()=>preview(false)}>{busy?"处理中…":"解析预览"}</button><button className="primary" disabled={busy||!valid} onClick={()=>preview(true)}>{busy?"导入中…":"确认导入"}</button></div></Modal>;
+}
 function Editor({
   order,
   onClose,
@@ -739,6 +785,7 @@ function Editor({
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [members, setMembers] = useState<Companion[]>([]);
+  const [customerServices, setCustomerServices] = useState<CustomerService[]>([]);
   const [rosterError, setRosterError] = useState("");
   const [rosterLoading, setRosterLoading] = useState(true);
   const [rosterRevision, setRosterRevision] = useState(0);
@@ -765,6 +812,15 @@ function Editor({
       });
     return () => controller.abort();
   }, [rosterRevision]);
+  useEffect(() => {
+    fetch("/api/customer-services")
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+        setCustomerServices(data.items);
+      })
+      .catch(() => setCustomerServices([]));
+  }, []);
   const set = <K extends keyof Input>(k: K, value: Input[K]) =>
     setV((prev) => ({ ...prev, [k]: value }));
   const sums = calculate(v);
@@ -934,6 +990,37 @@ function Editor({
                 </span>
               )}
             </div>
+            <label>
+              客服
+              <select
+                value={v.customerServiceId || ""}
+                onChange={(e) => {
+                  const customer = customerServices.find(
+                    (item) => item._id === e.target.value,
+                  );
+                  setV((previous) => ({
+                    ...previous,
+                    customerServiceId: customer?._id,
+                    customerService: customer?.name || "",
+                  }));
+                }}
+              >
+                <option value="">请选择客服（选填）</option>
+                {order !== "new" && v.customerService && !v.customerServiceId && (
+                  <option value="">{v.customerService}（历史订单）</option>
+                )}
+                {customerServices.map((customer) => (
+                  <option key={customer._id} value={customer._id}>
+                    {customer.name}
+                  </option>
+                ))}
+              </select>
+              <span className="roster-tools">
+                <a href="/customer-services" target="_blank" rel="noopener noreferrer">
+                  管理客服 ↗
+                </a>
+              </span>
+            </label>
             <label>
               状态
               <select

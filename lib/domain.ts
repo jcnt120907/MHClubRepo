@@ -71,6 +71,11 @@ export const inputSchema = z
       .string()
       .regex(/^[a-f0-9]{24}$/i, "陪陪记录无效")
       .optional(),
+    customerService: z.string().trim().max(80).default(""),
+    customerServiceId: z
+      .string()
+      .regex(/^[a-f0-9]{24}$/i, "客服记录无效")
+      .optional(),
     service: z.string().max(40),
     unitPrice: money,
     quantity: z.number().finite().min(0).max(10000).multipleOf(0.01),
