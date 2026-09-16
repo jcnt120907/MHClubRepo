@@ -12,13 +12,27 @@ async function collection() {
   );
   return db.collection("customerServices");
 }
-export async function listCustomerServices(q = "", month = "") {
+export async function listCustomerServices(q = "", month = "", half = "") {
   const c = await collection();
   const escaped = q.trim().slice(0, 200).replace(/[.*+?^$()|[\]\\]/g, "\\$&");
   const validMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
-  const monthOrders = validMonth
+  const validHalf = half === "1" || half === "2";
+  const monthOrders = validMonth && validHalf
+    ? {
+        $filter: {
+          input: "$successfulOrders",
+          as: "order",
+          cond: {
+            $and: [
+              { $gte: ["$$order.date", month + (half === "1" ? "-01" : "-16")] },
+              { $lte: ["$$order.date", month + (half === "1" ? "-15" : "-31")] },
+            ],
+          },
+        },
+      }
+    : validMonth
     ? { $filter: { input: "$successfulOrders", as: "order", cond: { $regexMatch: { input: "$$order.date", regex: "^" + month + "-" } } } }
-    : "$successfulOrders";
+      : "$successfulOrders";
   return c.aggregate([
     { $match: { isDeleted: false, ...(escaped ? { name: { $regex: escaped, $options: "i" } } : {}) } },
     {

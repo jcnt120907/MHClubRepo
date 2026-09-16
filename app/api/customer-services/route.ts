@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 import { CustomerServiceError, createCustomerService, listCustomerServices } from "@/lib/customer-services";
 export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
-  try { return NextResponse.json({ items: await listCustomerServices(req.nextUrl.searchParams.get("q") || "", req.nextUrl.searchParams.get("month") || "") }); }
+  try { return NextResponse.json({ items: await listCustomerServices(req.nextUrl.searchParams.get("q") || "", req.nextUrl.searchParams.get("month") || "", req.nextUrl.searchParams.get("half") || "") }); }
   catch { return NextResponse.json({ error: "客服名单加载失败，请检查数据库连接。" }, { status: 503 }); }
 }
 export async function POST(req: NextRequest) {
