@@ -33,6 +33,21 @@ export async function listCustomerServices(q = "", month = "", half = "") {
     : validMonth
     ? { $filter: { input: "$successfulOrders", as: "order", cond: { $regexMatch: { input: "$$order.date", regex: "^" + month + "-" } } } }
       : "$successfulOrders";
+  const wageFor = (input: string) => ({
+    $sum: {
+      $map: {
+        input,
+        as: "order",
+        in: {
+          $cond: [
+            { $eq: ["$$order.type", "L"] },
+            { $ifNull: ["$giftSuccessFee", 0.5] },
+            { $ifNull: ["$serviceSuccessFee", 1] },
+          ],
+        },
+      },
+    },
+  });
   return c.aggregate([
     { $match: { isDeleted: false, ...(escaped ? { name: { $regex: escaped, $options: "i" } } : {}) } },
     {
@@ -55,8 +70,9 @@ export async function listCustomerServices(q = "", month = "", half = "") {
       },
     },
     { $set: { successfulOrders: { $filter: { input: "$orders", as: "order", cond: { $in: ["$$order.status", ["可发放", "已付款"]] } } } } },
-    { $set: { orderCount: { $size: "$successfulOrders" }, periodOrderCount: { $size: monthOrders } } },
-    { $project: { orders: 0, successfulOrders: 0 } },
+    { $set: { periodOrders: monthOrders } },
+    { $set: { orderCount: { $size: "$successfulOrders" }, periodOrderCount: { $size: "$periodOrders" }, totalWage: wageFor("$successfulOrders"), periodWage: wageFor("$periodOrders") } },
+    { $project: { orders: 0, successfulOrders: 0, periodOrders: 0 } },
     { $sort: { nameKey: 1 } },
   ]).toArray();
 }
