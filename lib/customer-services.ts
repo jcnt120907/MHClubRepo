@@ -12,14 +12,19 @@ async function collection() {
   );
   return db.collection("customerServices");
 }
-export async function listCustomerServices(q = "") {
+export async function listCustomerServices(q = "", month = "") {
   const c = await collection();
   const escaped = q.trim().slice(0, 200).replace(/[.*+?^$()|[\]\\]/g, "\\$&");
+  const validMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(month);
+  const monthOrders = validMonth
+    ? { $filter: { input: "$successfulOrders", as: "order", cond: { $regexMatch: { input: "$$order.date", regex: "^" + month + "-" } } } }
+    : "$successfulOrders";
   return c.aggregate([
     { $match: { isDeleted: false, ...(escaped ? { name: { $regex: escaped, $options: "i" } } : {}) } },
     { $lookup: { from: "orders", localField: "_id", foreignField: "customerServiceId", as: "orders" } },
-    { $set: { orderCount: { $size: "$orders" } } },
-    { $project: { orders: 0 } },
+    { $set: { successfulOrders: { $filter: { input: "$orders", as: "order", cond: { $in: ["$$order.status", ["可发放", "已付款"]] } } } } },
+    { $set: { orderCount: { $size: "$successfulOrders" }, periodOrderCount: { $size: monthOrders } } },
+    { $project: { orders: 0, successfulOrders: 0 } },
     { $sort: { nameKey: 1 } },
   ]).toArray();
 }

@@ -970,7 +970,6 @@ function Editor({
                     ...previous,
                     customerServiceId: customer?._id,
                     customerService: customer?.name || "",
-                    status: customer ? "可发放" : previous.status,
                   }));
                 }}
               >

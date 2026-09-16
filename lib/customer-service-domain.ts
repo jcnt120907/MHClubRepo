@@ -5,7 +5,10 @@ export const customerServiceSchema = z.object({
 });
 export type CustomerService = z.infer<typeof customerServiceSchema> & {
   _id: string;
+  /** 成功对接单：状态为可发放或已付款。 */
   orderCount?: number;
+  /** 当前筛选月份内的成功对接单。 */
+  periodOrderCount?: number;
 };
 export const customerServiceKey = (name: string) =>
   name.trim().normalize("NFKC").toLocaleLowerCase();

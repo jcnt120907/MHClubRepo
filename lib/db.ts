@@ -13,7 +13,6 @@ import {
 const globalOrderQuery = globalThis as unknown as {
   companionOptions?: { names: string[]; expiresAt: number };
 };
-const customerHandoffMigration = "customer-service-orders-payable-v1";
 function clearCompanionOptions() {
   globalOrderQuery.companionOptions = undefined;
 }
@@ -30,21 +29,6 @@ export async function prepare() {
     db.collection("orders").createIndex({ service: 1, date: -1, time: -1 }),
     db.collection("orders").createIndex({ status: 1, date: -1, time: -1 }),
   ]);
-  // Run once for the existing records that were created before customer-service
-  // assignment automatically meant a successful handoff.
-  const migration = await db
-    .collection<{ _id: string; completedAt: string }>("migrations")
-    .updateOne(
-    { _id: customerHandoffMigration },
-    { $setOnInsert: { completedAt: new Date().toISOString() } },
-    { upsert: true },
-  );
-  if (migration.upsertedCount) {
-    await db.collection("orders").updateMany(
-      { status: "未标记", customerService: { $exists: true, $nin: ["", null] } },
-      { $set: { status: "可发放", updatedAt: new Date().toISOString() } },
-    );
-  }
   return db;
 }
 export async function createOrder(
@@ -55,9 +39,6 @@ export async function createOrder(
   const db = await prepare();
   let v = await resolveOrderCompanion(db, inputSchema.parse(raw));
   v = await resolveCustomerService(v);
-  // Selecting a registered customer-service contact means the handoff was
-  // successful, so a new unmarked order is ready for payout immediately.
-  if (v.customerServiceId && v.status === "未标记") v = { ...v, status: "可发放" };
   if (requestedOrderNo && (!/^[PTL]\d{4,}$/.test(requestedOrderNo) || requestedOrderNo[0] !== v.type))
     throw new Error("Telegram 单号与订单类型不符");
   // Reuse the first gap for this type. The unique orderNo index is the
@@ -116,7 +97,6 @@ export async function updateOrder(id: string, raw: unknown) {
   });
   v = await resolveCustomerService(v);
   if (old.type !== v.type) throw new Error("不能更改订单类型，请重新开单");
-  if (v.customerServiceId && !old.customerServiceId) v = { ...v, status: "可发放" };
   const result = await db
     .collection("orders")
     .findOneAndUpdate(
