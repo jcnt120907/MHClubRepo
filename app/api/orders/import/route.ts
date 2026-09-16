@@ -5,7 +5,13 @@ import { listCustomerServices } from "@/lib/customer-services";
 import { addons, services, type Input } from "@/lib/domain";
 
 type Parsed = { raw: string; input?: Input; requestedOrderNo?: string; errors: string[]; warnings: string[] };
-const pick = (text: string, label: string) => text.match(new RegExp(label + "：\\s*([^\\n]+?)(?=\\s+(?:陪陪|客服|服务|礼物|时间|日期)：|$)"))?.[1].trim() || "";
+const pick = (text: string, label: string) =>
+  text.match(
+    new RegExp(
+      label +
+        "\\s*[：:]\\s*([^\\n]+?)(?=\\s+(?:陪陪|客服|服务|礼物|时间|日期)\\s*[：:]|$)",
+    ),
+  )?.[1].trim() || "";
 const toTime = (value: string) => {
   const match = value.trim().match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
   if (!match) return null;
@@ -15,7 +21,9 @@ const toTime = (value: string) => {
 };
 const parseOne = (raw: string): Parsed => {
   const errors: string[] = [], warnings: string[] = [];
-  const requestedOrderNo = raw.match(/单号：\s*([PTL]\d{4,})/i)?.[1]?.toUpperCase();
+  const requestedOrderNo = raw
+    .match(/单号\s*[：:]\s*([PTL]\d{4,})/i)?.[1]
+    ?.toUpperCase();
   const type = requestedOrderNo?.[0] as Input["type"] | undefined;
   const companionRaw = pick(raw, "陪陪");
   const companion = companionRaw.split(/[（(]/)[0].trim();
