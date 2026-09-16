@@ -21,7 +21,25 @@ export async function listCustomerServices(q = "", month = "") {
     : "$successfulOrders";
   return c.aggregate([
     { $match: { isDeleted: false, ...(escaped ? { name: { $regex: escaped, $options: "i" } } : {}) } },
-    { $lookup: { from: "orders", localField: "_id", foreignField: "customerServiceId", as: "orders" } },
+    {
+      $lookup: {
+        from: "orders",
+        let: { customerId: { $toString: "$_id" }, customerName: "$name" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $or: [
+                  { $eq: ["$customerServiceId", "$$customerId"] },
+                  { $eq: ["$customerService", "$$customerName"] },
+                ],
+              },
+            },
+          },
+        ],
+        as: "orders",
+      },
+    },
     { $set: { successfulOrders: { $filter: { input: "$orders", as: "order", cond: { $in: ["$$order.status", ["可发放", "已付款"]] } } } } },
     { $set: { orderCount: { $size: "$successfulOrders" }, periodOrderCount: { $size: monthOrders } } },
     { $project: { orders: 0, successfulOrders: 0 } },
