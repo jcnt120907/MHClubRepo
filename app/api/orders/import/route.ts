@@ -7,8 +7,12 @@ import { addons, services, type Input } from "@/lib/domain";
 
 type Parsed = { raw: string; input?: Input; requestedOrderNo?: string; storageMinutes?: number; errors: string[]; warnings: string[] };
 const storageDuration = (raw: string) => {
-  const m = raw.match(/存单\s*[：:]?\s*(\d+(?:\.\d+)?)\s*(分钟|min(?:s)?|小时|hour(?:s)?)/i); if (!m) return raw.includes("存单") ? null : undefined;
-  return /小|hour/i.test(m[2]) ? Math.round(Number(m[1]) * 60) : Math.round(Number(m[1]));
+  const section = raw.match(/存单\s*[：:]?\s*([^\n]+)/i)?.[1];
+  if (!section) return raw.includes("存单") ? null : undefined;
+  const hours = [...section.matchAll(/(\d+(?:\.\d+)?)\s*(?:小时|hour(?:s)?|hr(?:s)?)/gi)].reduce((sum, m) => sum + Number(m[1]) * 60, 0);
+  const minutes = [...section.matchAll(/(\d+(?:\.\d+)?)\s*(?:分钟|min(?:s)?)/gi)].reduce((sum, m) => sum + Number(m[1]), 0);
+  const total = Math.round(hours + minutes);
+  return total || null;
 };
 const pick = (text: string, label: string) => {
   const nextLabel = "(?:陪陪|客服|服务|礼物|时间|日期|存单)\\s*[：:]";
