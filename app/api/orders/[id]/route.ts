@@ -48,6 +48,8 @@ export async function DELETE(req: NextRequest, c: Context) {
     const r = await db
       .collection("orders")
       .deleteOne({ _id: new ObjectId(id) });
+    if (r.deletedCount)
+      await db.collection("storedOrders").deleteMany({ orderId: id });
     return NextResponse.json(
       r.deletedCount ? { ok: true } : { error: "订单不存在" },
       { status: r.deletedCount ? 200 : 404 },
