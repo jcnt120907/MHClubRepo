@@ -5,13 +5,19 @@ import { listCustomerServices } from "@/lib/customer-services";
 import { addons, services, type Input } from "@/lib/domain";
 
 type Parsed = { raw: string; input?: Input; requestedOrderNo?: string; errors: string[]; warnings: string[] };
-const pick = (text: string, label: string) =>
-  text.match(
+const pick = (text: string, label: string) => {
+  const nextLabel = "(?:陪陪|客服|服务|礼物|时间|日期)\\s*[：:]";
+  // A blank field such as `礼物： 时间：8:25pm` must remain blank. Without
+  // this check, the clock time can be mistaken for a gift amount.
+  if (new RegExp(label + "\\s*[：:]\\s*(?=" + nextLabel + ")").test(text))
+    return "";
+  return text.match(
     new RegExp(
       label +
-        "\\s*[：:]\\s*([^\\n]+?)(?=\\s+(?:陪陪|客服|服务|礼物|时间|日期)\\s*[：:]|$)",
+        "\\s*[：:]\\s*([^\\n]+?)(?=\\s+" + nextLabel + "|$)",
     ),
   )?.[1].trim() || "";
+};
 const toTime = (value: string) => {
   const match = value.trim().match(/(\d{1,2}):(\d{2})\s*(am|pm)/i);
   if (!match) return null;
