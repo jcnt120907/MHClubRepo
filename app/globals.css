@@ -1573,6 +1573,7 @@ th,
 }
 .heading-actions .secondary:hover { background: #fff0f5; }
 .telegram-input { width: 100%; resize: vertical; line-height: 1.7; }
+.storage-editor { display:grid; gap:14px; }.storage-editor-intro { display:flex; gap:11px; align-items:center; padding:14px; border:1px solid #f0dce5; border-radius:12px; background:#fff6f9; color:#b65d81; }.storage-editor-intro strong{display:block;color:#5d414c;font-size:14px}.storage-editor-intro p{margin:3px 0 0;color:#8d737e;font-size:12px}.storage-field{display:grid;gap:7px;color:#634f58;font-size:13px;font-weight:600}.storage-field input{border:1px solid #e8d9df;border-radius:10px;padding:12px;color:var(--ink)}.storage-lookup{justify-self:start}.storage-order-found{display:flex;gap:8px;align-items:center;padding:11px 13px;border-radius:10px;background:#fdf2f6;color:#76515f}.storage-order-found span{font-size:13px}@media(max-width:480px){.storage-lookup{width:100%;justify-content:center}.storage-order-found{display:grid;gap:3px}}
 .import-preview { display: grid; gap: 8px; max-height: 280px; overflow: auto; }
 .import-row { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid #f0dce5; border-radius: 9px; background: #fffafc; }
 .import-row.invalid { border-color: #e8acac; background: #fff7f7; }

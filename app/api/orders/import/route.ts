@@ -11,7 +11,7 @@ const storageDuration = (raw: string) => {
   return /小|hour/i.test(m[2]) ? Math.round(Number(m[1]) * 60) : Math.round(Number(m[1]));
 };
 const pick = (text: string, label: string) => {
-  const nextLabel = "(?:陪陪|客服|服务|礼物|时间|日期)\\s*[：:]";
+  const nextLabel = "(?:陪陪|客服|服务|礼物|时间|日期|存单)\\s*[：:]";
   // A blank field such as `礼物： 时间：8:25pm` must remain blank. Without
   // this check, the clock time can be mistaken for a gift amount.
   if (new RegExp(label + "\\s*[：:]\\s*(?=" + nextLabel + ")").test(text))
