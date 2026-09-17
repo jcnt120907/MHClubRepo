@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import {
   addons,
+  addonPrice,
   calculate,
   category,
   services,
@@ -1081,7 +1082,7 @@ function Editor({
                     }
                   />
                   {a.label}
-                  {v.type !== "L" && <small>+{a.price}</small>}
+                  {v.type !== "L" && <small>+{addonPrice(k as keyof typeof addons, v.service)}</small>}
                 </label>
               ))}
           </div>

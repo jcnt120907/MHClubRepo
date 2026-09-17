@@ -27,6 +27,9 @@ export const addons = {
   exclusive: { label: "独家", price: 3 },
   popular: { label: "人气", price: 3 },
 };
+export function addonPrice(key: keyof typeof addons, service: string) {
+  return key === "technical" && service === "手游" ? 4 : addons[key].price;
+}
 export const statuses = [
   "未标记",
   "进行中",
@@ -121,7 +124,7 @@ export const inputSchema = z
 export type Input = z.infer<typeof inputSchema>;
 export function calculate(v: Input) {
   const add =
-    v.type === "L" ? 0 : v.addons.reduce((sum, k) => sum + addons[k].price, 0);
+    v.type === "L" ? 0 : v.addons.reduce((sum, k) => sum + addonPrice(k, v.service), 0);
   const sub = new Decimal(v.unitPrice).plus(add).times(v.quantity);
   const rate = v.addons.some((k) => k === "star" || k === "popular")
     ? 0.8
