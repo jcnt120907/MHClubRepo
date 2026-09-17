@@ -13,6 +13,7 @@ import {
 const globalOrderQuery = globalThis as unknown as {
   companionOptions?: { names: string[]; expiresAt: number };
 };
+const telegramDateRepairMigration = "telegram-four-digit-date-repair-v1";
 function clearCompanionOptions() {
   globalOrderQuery.companionOptions = undefined;
 }
@@ -29,6 +30,20 @@ export async function prepare() {
     db.collection("orders").createIndex({ service: 1, date: -1, time: -1 }),
     db.collection("orders").createIndex({ status: 1, date: -1, time: -1 }),
   ]);
+  const migration = await db.collection<{ _id: string }>("migrations").updateOne(
+    { _id: telegramDateRepairMigration },
+    { $setOnInsert: { completedAt: new Date().toISOString() } },
+    { upsert: true },
+  );
+  if (migration.upsertedCount) {
+    const affected = await db.collection<{ _id: unknown; date: string; notes?: string }>("orders")
+      .find({ importedFrom: "telegram", notes: { $regex: "日期[：:]" } }, { projection: { date: 1, notes: 1 } }).toArray();
+    await Promise.all(affected.map((order) => {
+      const date = order.notes?.match(/日期\s*[：:]\s*(\d{1,2})\/(\d{1,2})\/(\d{4})/) || null;
+      const correct = date ? `${date[3]}-${date[2].padStart(2,"0")}-${date[1].padStart(2,"0")}` : null;
+      return correct && correct !== order.date ? db.collection("orders").updateOne({ _id: order._id }, { $set: { date: correct, updatedAt: new Date().toISOString() } }) : Promise.resolve();
+    }));
+  }
   return db;
 }
 export async function createOrder(

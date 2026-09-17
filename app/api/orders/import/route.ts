@@ -46,7 +46,7 @@ const parseOne = (raw: string): Parsed => {
   const customerService = pick(raw, "客服");
   const serviceText = pick(raw, "服务");
   const giftText = pick(raw, "礼物");
-  const dateText = pick(raw, "日期").match(/(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})/);
+  const dateText = pick(raw, "日期").match(/(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})/);
   const timeText = pick(raw, "时间");
   if (!requestedOrderNo || !type) errors.push("找不到有效单号");
   if (!companion) errors.push("找不到陪陪");
