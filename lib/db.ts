@@ -142,7 +142,9 @@ export async function listOrders(p: URLSearchParams) {
     Math.max(1, Math.min(100000, Number(p.get("page")) || 1)),
   );
   const size = 12;
-  const itemSort = [
+  const sortKey = p.get("sort") || "orderNo";
+  const sortDirection = p.get("dir") === "desc" ? -1 : 1;
+  const itemSort = sortKey === "date" || sortKey === "total" || sortKey === "wage" || sortKey === "remaining" || sortKey === "status" ? [{ $sort: { [sortKey]: sortDirection } }] : [
           {
             $set: {
               _orderType: { $substrBytes: ["$orderNo", 0, 1] },
@@ -151,7 +153,7 @@ export async function listOrders(p: URLSearchParams) {
               },
             },
           },
-          { $sort: { _orderType: 1, _orderSequence: 1 } },
+          { $sort: { _orderType: sortDirection, _orderSequence: sortDirection } },
           { $unset: ["_orderType", "_orderSequence"] },
         ];
   const cachedOptions = globalOrderQuery.companionOptions;

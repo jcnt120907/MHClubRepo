@@ -100,7 +100,9 @@ export default function Page() {
     [busy, setBusy] = useState(false),
     [toast, setToast] = useState(""),
     [selected, setSelected] = useState<Set<string>>(new Set()),
-    [bulkStatus, setBulkStatus] = useState<(typeof statuses)[number]>("已付款");
+    [bulkStatus, setBulkStatus] = useState<(typeof statuses)[number]>("已付款"),
+    [sort, setSort] = useState("orderNo"),
+    [dir, setDir] = useState<"asc"|"desc">("asc");
   const [telegramImport, setTelegramImport] = useState(false);
   const update = (k: keyof Filters, v: string) => {
     setFilters((f) => ({ ...f, [k]: v }));
@@ -121,7 +123,7 @@ export default function Page() {
     setError("");
     (async () => {
       try {
-        const p = new URLSearchParams({ ...filters, page: String(page) });
+        const p = new URLSearchParams({ ...filters, page: String(page), sort, dir });
         const r = await fetch("/api/orders?" + p, {
           signal: controller.signal,
         });
@@ -143,7 +145,7 @@ export default function Page() {
     return () => {
       controller.abort();
     };
-  }, [filters, page, revision]);
+  }, [filters, page, revision, sort, dir]);
   useEffect(() => {
     if (toast) {
       const t = setTimeout(() => setToast(""), 4000);
@@ -486,14 +488,14 @@ export default function Page() {
                           }
                         />
                       </th>
-                      <th>单号 / 日期</th>
+                      <th><button className="sort-header" onClick={()=>{setDir(sort==="orderNo"&&dir==="asc"?"desc":"asc");setSort("orderNo")}}>单号 / 日期 {sort==="orderNo"?(dir==="asc"?"↑":"↓"):"↕"}</button></th>
                       <th>陪陪</th>
                       <th>服务 / 数量</th>
                       <th>附加项目</th>
-                      <th className="number">总金额</th>
-                      <th className="number">陪陪工资</th>
-                      <th className="number">剩下</th>
-                      <th>状态</th>
+                      <th className="number"><button className="sort-header" onClick={()=>{setDir(sort==="total"&&dir==="asc"?"desc":"asc");setSort("total")}}>总金额</button></th>
+                      <th className="number"><button className="sort-header" onClick={()=>{setDir(sort==="wage"&&dir==="asc"?"desc":"asc");setSort("wage")}}>陪陪工资</button></th>
+                      <th className="number"><button className="sort-header" onClick={()=>{setDir(sort==="remaining"&&dir==="asc"?"desc":"asc");setSort("remaining")}}>剩下</button></th>
+                      <th><button className="sort-header" onClick={()=>{setDir(sort==="status"&&dir==="asc"?"desc":"asc");setSort("status")}}>状态</button></th>
                       <th>操作</th>
                     </tr>
                   </thead>
