@@ -88,6 +88,17 @@ export async function importLegacyCompanions() {
 export async function listCompanions(q = "") {
   await importLegacyCompanions();
   const db = await database();
+  const all = await db.collection("companions").find({ isDeleted: false }).toArray();
+  const groups = new Map<string, typeof all>();
+  for (const item of all) { const key = nameKey(item.name as string); groups.set(key, [...(groups.get(key) || []), item]); }
+  for (const entries of groups.values()) if (entries.length > 1) {
+    const keeper = entries.sort((a,b) => Number(Boolean(b.paymentMethod||b.paymentContent||b.paymentImage)) - Number(Boolean(a.paymentMethod||a.paymentContent||a.paymentImage)))[0];
+    const duplicates = entries.filter(item => !item._id.equals(keeper._id));
+    await Promise.all(duplicates.map(async item => {
+      await db.collection("orders").updateMany({ companionId: item._id.toString() }, { $set: { companionId: keeper._id.toString(), companion: keeper.name } });
+      await db.collection("companions").updateOne({ _id: item._id }, { $set: { isDeleted: true, deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } });
+    }));
+  }
   const escaped = q
     .trim()
     .slice(0, 200)
