@@ -175,6 +175,22 @@ export async function deleteCompanion(id: string) {
       },
     );
 }
+export async function mergeCompanion(sourceId: string, targetId: string) {
+  if (!ObjectId.isValid(sourceId) || !ObjectId.isValid(targetId) || sourceId === targetId) throw new CompanionError("请选择另一位陪陪作为合并目标。");
+  const db = await prepareRoster();
+  const [source, target] = await Promise.all([
+    db.collection("companions").findOne({ _id: new ObjectId(sourceId), isDeleted: false }),
+    db.collection("companions").findOne({ _id: new ObjectId(targetId), isDeleted: false }),
+  ]);
+  if (!source || !target) throw new CompanionError("来源或目标陪陪不存在。", 404);
+  const now = new Date().toISOString();
+  await Promise.all([
+    db.collection("orders").updateMany({ companionId: sourceId }, { $set: { companionId: targetId, companion: target.name, updatedAt: now } }),
+    db.collection("storedOrders").updateMany({ companion: source.name }, { $set: { companion: target.name, updatedAt: now } }),
+    db.collection("companions").updateOne({ _id: source._id }, { $set: { isDeleted: true, deletedAt: now, updatedAt: now, mergedInto: targetId } }),
+  ]);
+  return { source: source.name, target: target.name };
+}
 export async function resolveOrderCompanion(
   db: Db,
   v: Input,
