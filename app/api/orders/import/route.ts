@@ -68,7 +68,7 @@ const parseOne = (raw: string): Parsed => {
   const year = dateText ? (dateText[3].length === 2 ? "20" + dateText[3] : dateText[3]) : "";
   const date = dateText ? year + "-" + dateText[2].padStart(2,"0") + "-" + dateText[1].padStart(2,"0") : "";
   const minutes = start !== null && end !== null ? ((end - start + 1440) % 1440 || 1440) : 0;
-  const service = type === "L" ? "礼物" : type === "P" ? "手游" : /语音条/.test(serviceText) ? "语音条" : /通话|电话/.test(serviceText) ? "语音通话" : /视频/.test(serviceText) ? "视频" : /文字/.test(serviceText) ? "文字" : "语音通话";
+  const service = type === "L" ? "礼物" : type === "P" ? /端游|端瓦|瓦/.test(serviceText) ? "端游" : "手游" : /语音条/.test(serviceText) ? "语音条" : /通话|电话/.test(serviceText) ? "语音通话" : /视频/.test(serviceText) ? "视频" : /文字/.test(serviceText) ? "文字" : "语音通话";
   const amount = Number(giftText.match(/(?:单价|RM|¥)?\s*(\d+(?:\.\d+)?)/i)?.[1] || 0);
   if (type === "L" && !amount) errors.push("礼物单需要可识别的金额");
   if (type === "L") uniqueAddons.splice(0, uniqueAddons.length, ...uniqueAddons.filter((key) => ["star","exclusive","popular"].includes(key)));
