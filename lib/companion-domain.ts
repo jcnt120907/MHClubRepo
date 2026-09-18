@@ -12,7 +12,7 @@ export const companionSchema = z.object({
     .default(""),
 });
 export function nameKey(name: string) {
-  return name.trim().normalize("NFKC").replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+  return name.trim().normalize("NFKC").replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/\p{M}/gu, "").replace(/\s+/g, " ").toLocaleLowerCase("en-US");
 }
 export type Companion = {
   _id: string;

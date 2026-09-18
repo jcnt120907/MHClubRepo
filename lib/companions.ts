@@ -131,7 +131,9 @@ export async function updateCompanion(id: string, raw: unknown) {
   const v = companionSchema.parse(raw);
   const db = await prepareRoster();
   try {
-    return await db
+    const old = await db.collection("companions").findOne({ _id: new ObjectId(id), isDeleted: false });
+    if (!old) return null;
+    const result = await db
       .collection("companions")
       .findOneAndUpdate(
         { _id: new ObjectId(id), isDeleted: false },
@@ -144,6 +146,14 @@ export async function updateCompanion(id: string, raw: unknown) {
         },
         { returnDocument: "after" },
       );
+    if (result && old.name !== v.name) {
+      const now = new Date().toISOString();
+      await Promise.all([
+        db.collection("orders").updateMany({ companionId: id }, { $set: { companion: v.name, updatedAt: now } }),
+        db.collection("storedOrders").updateMany({ companion: old.name }, { $set: { companion: v.name, updatedAt: now } }),
+      ]);
+    }
+    return result;
   } catch (e) {
     if (e && typeof e === "object" && "code" in e && e.code === 11000)
       throw new CompanionError("已有同名陪陪，请使用其他名称。", 409);
