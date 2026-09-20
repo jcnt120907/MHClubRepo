@@ -5,7 +5,7 @@ import { listCustomerServices } from "@/lib/customer-services";
 import { createStoredOrderForImportedOrder } from "@/lib/stored-orders";
 import { addons, services, type Input } from "@/lib/domain";
 
-type Parsed = { raw: string; input?: Input; requestedOrderNo?: string; storageMinutes?: number; errors: string[]; warnings: string[] };
+type Parsed = { raw: string; input?: Input; requestedOrderNo?: string; storageMinutes?: number; ownerSource?: "IG" | "Telegram"; ownerId?: string; errors: string[]; warnings: string[] };
 const storageDuration = (raw: string) => {
   const section = raw.match(/存单\s*[：:]?\s*([^\n]+)/i)?.[1];
   if (!section) return raw.includes("存单") ? null : undefined;
@@ -15,7 +15,7 @@ const storageDuration = (raw: string) => {
   return total || null;
 };
 const pick = (text: string, label: string) => {
-  const nextLabel = "(?:陪陪|客服|服务|礼物|时间|日期|存单)\\s*[：:]";
+  const nextLabel = "(?:陪陪|客服|服务|礼物|时间|日期|存单|老板)\\s*[：:]";
   // A blank field such as `礼物： 时间：8:25pm` must remain blank. Without
   // this check, the clock time can be mistaken for a gift amount.
   if (new RegExp(label + "\\s*[：:]\\s*(?=" + nextLabel + ")").test(text))
@@ -41,6 +41,10 @@ const parseOne = (raw: string): Parsed => {
     ?.toUpperCase();
   const type = requestedOrderNo?.[0] as Input["type"] | undefined;
   const storageMinutes = storageDuration(raw);
+  const ownerText = pick(raw, "老板").replace(/\*\*/g, "").trim();
+  const ownerMatch = ownerText.match(/^(IG|Telegram)\b\s*[:：]?\s*(.+)$/i);
+  const ownerSource = ownerMatch ? (ownerMatch[1].toLowerCase() === "ig" ? "IG" : "Telegram") : undefined;
+  const ownerId = ownerMatch?.[2].trim() || undefined;
   const companionRaw = pick(raw, "陪陪");
   const companion = companionRaw.split(/[（(]/)[0].trim();
   const customerService = pick(raw, "客服");
@@ -60,6 +64,7 @@ const parseOne = (raw: string): Parsed => {
   if (start === null || end === null) errors.push("找不到有效时间");
   if (storageMinutes === null || (storageMinutes !== undefined && (!storageMinutes || storageMinutes > 1440))) errors.push("找不到有效存单时长");
   if (storageMinutes !== undefined && type === "L") errors.push("礼物单不能建立存单");
+  if (ownerText && (!ownerSource || !ownerId)) warnings.push("老板资料请使用「IG @账号」或「Telegram @账号」格式");
   const addonKeys = Object.entries(addons).filter(([, addon]) => raw.includes(addon.label) || (addon.label === "夜单" && /[（(]\s*夜\s*[）)]/.test(raw))).map(([key]) => key as keyof typeof addons);
   if (companionRaw.includes("优等")) addonKeys.push("excellent");
   if (companionRaw.includes("独家")) addonKeys.push("exclusive");
@@ -74,7 +79,7 @@ const parseOne = (raw: string): Parsed => {
   if (type === "L") uniqueAddons.splice(0, uniqueAddons.length, ...uniqueAddons.filter((key) => ["star","exclusive","popular"].includes(key)));
   if (type === "L" && /夜|续|通话/.test(serviceText)) warnings.push("礼物单已只保留礼物金额；原服务文字会存入备注");
   if (type === "P" && /hok/i.test(serviceText)) warnings.push("HOK 已按手游默认价格计算，原服务名称会存入备注");
-  if (type && date && start !== null) return { raw, requestedOrderNo, storageMinutes: storageMinutes ?? undefined, errors, warnings, input: { type, date, time: String(Math.floor(start/60)).padStart(2,"0") + ":" + String(start%60).padStart(2,"0"), companion, customerService, service, unitPrice: type === "L" ? 0 : services[service], quantity: type === "L" ? 0 : Number((minutes / 60).toFixed(2)), addons: uniqueAddons, gift: type === "L" ? amount : amount, notes: "Telegram 报单：" + raw.replace(/\s+/g," ").trim(), status: storageMinutes ? "进行中" : "可发放" } };
+  if (type && date && start !== null) return { raw, requestedOrderNo, storageMinutes: storageMinutes ?? undefined, ownerSource, ownerId, errors, warnings, input: { type, date, time: String(Math.floor(start/60)).padStart(2,"0") + ":" + String(start%60).padStart(2,"0"), companion, customerService, service, unitPrice: type === "L" ? 0 : services[service], quantity: type === "L" ? 0 : Number((minutes / 60).toFixed(2)), addons: uniqueAddons, gift: type === "L" ? amount : amount, notes: "Telegram 报单：" + raw.replace(/\s+/g," ").trim(), status: storageMinutes ? "进行中" : "可发放" } };
   return { raw, requestedOrderNo, errors, warnings };
 };
 // Telegram messages are often pasted as one continuous paragraph.  A new `单号`
@@ -106,7 +111,7 @@ export async function POST(req: NextRequest) {
       input.companionId = companion?._id.toString();
       input.customerServiceId = customer._id.toString();
       const order = await createOrder(input, { importedFrom: "telegram" }, item.requestedOrderNo);
-      if (item.storageMinutes) await createStoredOrderForImportedOrder(order, item.storageMinutes);
+      if (item.storageMinutes) await createStoredOrderForImportedOrder(order, item.storageMinutes, { source: item.ownerSource, id: item.ownerId });
     }
     return NextResponse.json({ created: items.length });
   } catch (e) {

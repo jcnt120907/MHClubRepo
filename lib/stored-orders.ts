@@ -1,27 +1,30 @@
 import { ObjectId } from "mongodb";
 import { database } from "./mongo";
 
-export type StoredOrder = { _id: string; orderId: string; orderNo: string; companion: string; date: string; durationMinutes: number; status: "进行中" | "完成"; previousOrderStatus: string; createdAt: string; completedAt?: string; updatedAt: string };
+export type StoredOrder = { _id: string; orderId: string; orderNo: string; companion: string; date: string; durationMinutes: number; status: "进行中" | "完成"; previousOrderStatus: string; ownerSource?: "IG" | "Telegram"; ownerId?: string; createdAt: string; completedAt?: string; updatedAt: string };
 const validDuration = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v > 0 && v <= 1440;
 async function collection() {
   const db = await database(); const c = db.collection("storedOrders");
-  await Promise.all([c.createIndex({ orderId: 1 }, { unique: true }), c.createIndex({ orderNo: 1 }, { unique: true }), c.createIndex({ status: 1, date: -1 })]);
+  await Promise.all([c.createIndex({ orderId: 1 }, { unique: true }), c.createIndex({ orderNo: 1 }, { unique: true }), c.createIndex({ status: 1, date: -1 }), c.createIndex({ ownerSource: 1, ownerId: 1 })]);
   return { db, c };
 }
-export async function createStoredOrder(orderId: string, durationMinutes: number, previousOverride?: string) {
+export async function createStoredOrder(orderId: string, durationMinutes: number, previousOverride?: string, owner?: { source?: unknown; id?: unknown }) {
   if (!ObjectId.isValid(orderId) || !validDuration(durationMinutes)) throw new Error("存单资料无效");
   const { db, c } = await collection(); const order = await db.collection("orders").findOne({ _id: new ObjectId(orderId) });
   if (!order) throw new Error("找不到原订单");
   if (order.type === "L") throw new Error("礼物单不能建立存单");
   const now = new Date().toISOString();
-  const doc = { orderId, orderNo: order.orderNo as string, companion: order.companion as string, date: order.date as string, durationMinutes, status: "进行中" as const, previousOrderStatus: previousOverride || order.status as string, createdAt: now, updatedAt: now };
+  const rawSource = typeof owner?.source === "string" ? owner.source.trim().toLowerCase() : "";
+  const ownerSource = rawSource === "ig" ? "IG" : rawSource === "telegram" ? "Telegram" : undefined;
+  const ownerId = typeof owner?.id === "string" ? owner.id.trim().slice(0, 120) || undefined : undefined;
+  const doc = { orderId, orderNo: order.orderNo as string, companion: order.companion as string, date: order.date as string, durationMinutes, status: "进行中" as const, previousOrderStatus: previousOverride || order.status as string, ...(ownerSource ? { ownerSource } : {}), ...(ownerId ? { ownerId } : {}), createdAt: now, updatedAt: now };
   await c.insertOne(doc); await db.collection("orders").updateOne({ _id: order._id }, { $set: { status: "进行中", updatedAt: now } });
   return { ...doc, _id: orderId };
 }
-export async function createStoredOrderForImportedOrder(order: { _id: string }, durationMinutes: number) { return createStoredOrder(order._id, durationMinutes, "未标记"); }
+export async function createStoredOrderForImportedOrder(order: { _id: string }, durationMinutes: number, owner?: { source?: unknown; id?: unknown }) { return createStoredOrder(order._id, durationMinutes, "未标记", owner); }
 export async function listStoredOrders(p: URLSearchParams) {
   const { c } = await collection(); const q = p.get("q")?.trim(); const f: Record<string, unknown> = {};
-  if (q) { const e=q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); f.$or=[{orderNo:{$regex:e,$options:"i"}},{companion:{$regex:e,$options:"i"}}]; }
+  if (q) { const e=q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); f.$or=[{orderNo:{$regex:e,$options:"i"}},{companion:{$regex:e,$options:"i"}},{ownerSource:{$regex:e,$options:"i"}},{ownerId:{$regex:e,$options:"i"}}]; }
   if (p.get("status")) f.status=p.get("status"); if (p.get("from")||p.get("to")) f.date={...(p.get("from")?{$gte:p.get("from")} : {}),...(p.get("to")?{$lte:p.get("to")} : {})};
   return (await c.find(f).sort({ date:-1, createdAt:-1 }).toArray()).map(x=>({...x,_id:x._id.toString()}));
 }

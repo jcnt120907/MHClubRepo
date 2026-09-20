@@ -1,5 +1,56 @@
 "use client";
-import {useEffect,useState} from "react";import {Clock3,Plus,Search,Trash2} from "lucide-react";import Workspace from "../components/Workspace";import Modal from "../components/Modal";
-type S={_id:string;orderNo:string;companion:string;date:string;durationMinutes:number;status:"进行中"|"完成"};type O={_id:string;orderNo:string;companion:string;date:string};
-export default function Page(){const [items,setItems]=useState<S[]>([]),[q,setQ]=useState(""),[sort,setSort]=useState<keyof S>("orderNo"),[asc,setAsc]=useState(true),[add,setAdd]=useState(false),[confirm,setConfirm]=useState<{i:S;k:"complete"|"delete"}|null>(null),[busy,setBusy]=useState(false);const load=()=>fetch("/api/stored-orders?q="+encodeURIComponent(q)).then(r=>r.json()).then(d=>setItems(d.items||[]));useEffect(()=>{load()},[q]);const toggle=(k:keyof S)=>{setAsc(k===sort?!asc:true);setSort(k)};const rows=[...items].sort((a,b)=>{const x=a[sort],y=b[sort];return (typeof x==="number"&&typeof y==="number"?x-y:String(x).localeCompare(String(y),"zh"))*(asc?1:-1)});const run=async()=>{if(!confirm)return;setBusy(true);await fetch("/api/stored-orders/"+confirm.i._id,{method:confirm.k==="delete"?"DELETE":"PATCH",headers:{"Content-Type":"application/json"},body:confirm.k==="complete"?JSON.stringify({action:"complete"}):undefined});setBusy(false);setConfirm(null);load()};const h=(text:string,k:keyof S)=><button className="sort-header" onClick={()=>toggle(k)}>{text} {sort===k?(asc?"↑":"↓"):"↕"}</button>;return <Workspace section="storedOrders"><div className="content storage-page"><div className="heading"><div><div className="eyebrow">STORED ORDER MANAGEMENT</div><h1>存单管理</h1><p>完成存单后，原订单自动转为可发放。</p></div><button className="primary" onClick={()=>setAdd(true)}><Plus size={18}/>新增存单</button></div><section className="storage-hero"><div className="storage-hero-mark"><Clock3 size={25}/></div><div><strong>存单工作台</strong><p>每笔订单只保留一笔存单。</p></div><div className="storage-metrics"><div><strong>{items.filter(i=>i.status==="进行中").length}</strong><span>进行中</span></div><div><strong>{items.length}</strong><span>总记录</span></div></div></section><section className="orders-panel storage-panel"><div className="storage-toolbar"><label className="search"><Search size={18}/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="搜寻单号或陪陪"/></label></div><div className="table-wrap"><table><thead><tr><th>{h("订单","orderNo")}</th><th>{h("陪陪","companion")}</th><th>{h("存单日期","date")}</th><th>{h("存单时间","durationMinutes")}</th><th>{h("状态","status")}</th><th>操作</th></tr></thead><tbody>{rows.map(i=><tr key={i._id}><td>{i.orderNo}</td><td>{i.companion}</td><td>{i.date}</td><td>{i.durationMinutes} 分钟</td><td>{i.status}</td><td>{i.status==="进行中"&&<button className="secondary" onClick={()=>setConfirm({i,k:"complete"})}>完成</button>} <button className="icon-btn delete" onClick={()=>setConfirm({i,k:"delete"})}><Trash2 size={16}/></button></td></tr>)}</tbody></table></div></section></div>{confirm&&<Modal title={confirm.k==="complete"?"确认完成存单":"确认删除存单"} onClose={()=>!busy&&setConfirm(null)}><div className="confirm"><p>{confirm.k==="complete"?"确认完成后，原订单会转为可发放。":"确定删除这笔存单？"}</p><div className="dialog-actions"><button className="secondary" onClick={()=>setConfirm(null)}>取消</button><button className={confirm.k==="complete"?"primary":"danger"} disabled={busy} onClick={run}>{busy?"处理中…":confirm.k==="complete"?"确认完成":"确认删除"}</button></div></div></Modal>}{add&&<Add close={()=>setAdd(false)} done={()=>{setAdd(false);load()}}/>}</Workspace>}
-function Add({close,done}:{close:()=>void;done:()=>void}){const [q,setQ]=useState(""),[o,setO]=useState<O[]>([]),[p,setP]=useState<O|null>(null),[m,setM]=useState(30);const find=(v:string)=>fetch("/api/orders?q="+v).then(r=>r.json()).then(d=>{setO(d.items||[]);setP(d.items?.find((x:O)=>x.orderNo===v)||null)});const save=()=>p&&fetch("/api/stored-orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({orderId:p._id,durationMinutes:m})}).then(done);return <Modal title="新增存单" onClose={close}><div className="form-body storage-editor"><label className="storage-field">订单单号<input list="o" value={q} onChange={e=>{setQ(e.target.value);find(e.target.value)}}/><datalist id="o">{o.map(x=><option key={x._id} value={x.orderNo}>{x.companion}</option>)}</datalist></label><label className="storage-field">存单时间（分钟）<input type="number" value={m} onChange={e=>setM(Number(e.target.value))}/></label></div><div className="dialog-actions"><button className="secondary" onClick={close}>取消</button><button className="primary" onClick={save}>建立存单</button></div></Modal>}
+
+import { useEffect, useState } from "react";
+import { Clock3, Plus, Search, Trash2 } from "lucide-react";
+import Workspace from "@/app/components/Workspace";
+import Modal from "@/app/components/Modal";
+
+type Stored = { _id: string; orderNo: string; companion: string; date: string; durationMinutes: number; status: "进行中" | "完成"; ownerSource?: "IG" | "Telegram"; ownerId?: string };
+type Order = { _id: string; orderNo: string; companion: string; date: string };
+
+export default function StoredOrdersPage() {
+  const [items, setItems] = useState<Stored[]>([]);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<keyof Stored>("orderNo");
+  const [ascending, setAscending] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [confirmation, setConfirmation] = useState<{ item: Stored; action: "complete" | "delete" } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = () => fetch(`/api/stored-orders?q=${encodeURIComponent(query)}`).then(response => response.json()).then(data => setItems(data.items || []));
+  useEffect(() => { load(); }, [query]);
+  const toggleSort = (field: keyof Stored) => { setAscending(field === sort ? !ascending : true); setSort(field); };
+  const rows = [...items].sort((a, b) => {
+    const left = a[sort] ?? ""; const right = b[sort] ?? "";
+    return (typeof left === "number" && typeof right === "number" ? left - right : String(left).localeCompare(String(right), "zh")) * (ascending ? 1 : -1);
+  });
+  const header = (label: string, field: keyof Stored) => <button className="sort-header" onClick={() => toggleSort(field)}>{label} {sort === field ? (ascending ? "↑" : "↓") : "↕"}</button>;
+  const run = async () => {
+    if (!confirmation) return;
+    setBusy(true);
+    await fetch(`/api/stored-orders/${confirmation.item._id}`, { method: confirmation.action === "delete" ? "DELETE" : "PATCH", headers: { "Content-Type": "application/json" }, body: confirmation.action === "complete" ? JSON.stringify({ action: "complete" }) : undefined });
+    setBusy(false); setConfirmation(null); load();
+  };
+
+  return <Workspace section="storedOrders"><div className="content storage-page">
+    <div className="heading"><div><div className="eyebrow">STORED ORDER MANAGEMENT</div><h1>存单管理</h1><p>完成存单后，原订单自动转为可发放。</p></div><button className="primary" onClick={() => setAdding(true)}><Plus size={18} />新增存单</button></div>
+    <section className="storage-hero"><div className="storage-hero-mark"><Clock3 size={25} /></div><div><strong>存单工作台</strong><p>每笔订单只保留一笔存单，并记录老板点单资料。</p></div><div className="storage-metrics"><div><strong>{items.filter(item => item.status === "进行中").length}</strong><span>进行中</span></div><div><strong>{items.length}</strong><span>总记录</span></div></div></section>
+    <section className="orders-panel storage-panel"><div className="storage-toolbar"><label className="search"><Search size={18} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="搜寻单号、陪陪或老板 ID" /></label></div><div className="table-wrap"><table><thead><tr><th>{header("订单", "orderNo")}</th><th>{header("陪陪", "companion")}</th><th>{header("存单日期", "date")}</th><th>{header("存单时间", "durationMinutes")}</th><th>{header("老板来源", "ownerSource")}</th><th>{header("老板 ID", "ownerId")}</th><th>{header("状态", "status")}</th><th>操作</th></tr></thead><tbody>{rows.map(item => <tr key={item._id}><td>{item.orderNo}</td><td>{item.companion}</td><td>{item.date}</td><td>{item.durationMinutes} 分钟</td><td>{item.ownerSource || "—"}</td><td>{item.ownerId || "—"}</td><td>{item.status}</td><td>{item.status === "进行中" && <button className="secondary" onClick={() => setConfirmation({ item, action: "complete" })}>完成</button>} <button className="icon-btn delete" aria-label="删除存单" onClick={() => setConfirmation({ item, action: "delete" })}><Trash2 size={16} /></button></td></tr>)}</tbody></table></div></section>
+  </div>
+  {confirmation && <Modal title={confirmation.action === "complete" ? "确认完成存单" : "确认删除存单"} onClose={() => !busy && setConfirmation(null)}><div className="confirm"><p>{confirmation.action === "complete" ? "确认完成后，原订单会转为可发放。" : "确定删除这笔存单？"}</p><div className="dialog-actions"><button className="secondary" onClick={() => setConfirmation(null)}>取消</button><button className={confirmation.action === "complete" ? "primary" : "danger"} disabled={busy} onClick={run}>{busy ? "处理中…" : confirmation.action === "complete" ? "确认完成" : "确认删除"}</button></div></div></Modal>}
+  {adding && <AddStoredOrder close={() => setAdding(false)} done={() => { setAdding(false); load(); }} />}
+  </Workspace>;
+}
+
+function AddStoredOrder({ close, done }: { close: () => void; done: () => void }) {
+  const [query, setQuery] = useState(""); const [options, setOptions] = useState<Order[]>([]); const [order, setOrder] = useState<Order | null>(null);
+  const [minutes, setMinutes] = useState(30); const [ownerSource, setOwnerSource] = useState<"" | "IG" | "Telegram">(""); const [ownerId, setOwnerId] = useState(""); const [error, setError] = useState(""); const [saving, setSaving] = useState(false);
+  const search = (value: string) => fetch(`/api/orders?q=${encodeURIComponent(value)}`).then(response => response.json()).then(data => { const next = data.items || []; setOptions(next); setOrder(next.find((item: Order) => item.orderNo === value) || null); });
+  const save = async () => {
+    if (!order) { setError("请选择已有的订单单号"); return; }
+    setSaving(true); setError("");
+    const response = await fetch("/api/stored-orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: order._id, durationMinutes: minutes, ownerSource, ownerId }) });
+    const data = await response.json(); setSaving(false); if (!response.ok) { setError(data.error || "存单保存失败"); return; } done();
+  };
+  return <Modal title="新增存单" onClose={() => !saving && close()}><div className="form-body storage-editor"><p className="field-help">输入单号或陪陪名字选择原订单，资料会自动带入。</p><label className="storage-field">订单单号<input list="stored-order-options" value={query} placeholder="例如 P0014" onChange={event => { setQuery(event.target.value); search(event.target.value); }} /><datalist id="stored-order-options">{options.map(item => <option key={item._id} value={item.orderNo}>{item.companion} · {item.date}</option>)}</datalist></label>{order && <div className="storage-order-found"><strong>{order.orderNo}</strong><span>{order.companion} · {order.date}</span></div>}<label className="storage-field">存单时间（分钟）<input type="number" min="1" max="1440" value={minutes} onChange={event => setMinutes(Number(event.target.value))} /></label><div className="form-grid"><label className="storage-field">老板来源<select value={ownerSource} onChange={event => setOwnerSource(event.target.value as "" | "IG" | "Telegram")}><option value="">未填写</option><option value="IG">IG</option><option value="Telegram">Telegram</option></select></label><label className="storage-field">老板 ID<input value={ownerId} placeholder="例如 @chinwai0811" onChange={event => setOwnerId(event.target.value)} /></label></div>{error && <p className="field-error">{error}</p>}</div><div className="dialog-actions"><button className="secondary" disabled={saving} onClick={close}>取消</button><button className="primary" disabled={saving} onClick={save}>{saving ? "保存中…" : "建立存单"}</button></div></Modal>;
+}
