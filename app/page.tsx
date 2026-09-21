@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Workspace from "./components/Workspace";
 import Modal from "./components/Modal";
 import type { Companion } from "@/lib/companion-domain";
@@ -87,6 +87,7 @@ function fresh(): Input {
   };
 }
 export default function Page() {
+  const paymentCache = useRef<Record<string, Companion>>({});
   const [filters, setFilters] = useState(initialFilters),
     [search, setSearch] = useState(initialFilters.q),
     [page, setPage] = useState(1),
@@ -169,13 +170,17 @@ export default function Page() {
     setRevision((v) => v + 1);
     setToast(message);
   };
-  async function showPayment(name: string) {
+  async function showPayment(order: Order) {
     try {
-      const r = await fetch("/api/companions?q=" + encodeURIComponent(name));
+      const cacheKey = order.companionId || order.companion;
+      const cached = paymentCache.current[cacheKey];
+      if (cached) { setPaymentFor(cached); return; }
+      const r = await fetch(order.companionId ? "/api/companions/" + order.companionId : "/api/companions?q=" + encodeURIComponent(order.companion));
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
-      const member = d.items.find((m: Companion) => m.name === name);
+      const member = order.companionId ? d as Companion : d.items.find((m: Companion) => m.name === order.companion);
       if (!member) throw new Error("找不到这位陪陪的付款资料。");
+      paymentCache.current[cacheKey] = member;
       setPaymentFor(member);
     } catch (e) {
       setToast(e instanceof Error ? e.message : "付款资料加载失败");
@@ -530,7 +535,7 @@ export default function Page() {
                         <td>
                           <button
                             className="person payment-link"
-                            onClick={(event) => { event.stopPropagation(); showPayment(o.companion); }}
+                            onClick={(event) => { event.stopPropagation(); showPayment(o); }}
                             aria-label={"查看 " + o.companion + " 的付款资料"}
                           >
                             <span className={"person-icon " + o.type}>
