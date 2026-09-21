@@ -14,7 +14,6 @@ import {
   Gift,
   Layers3,
   X,
-  Pencil,
   Trash2,
   ChevronLeft,
   ChevronRight,
@@ -104,7 +103,7 @@ export default function Page() {
     [selected, setSelected] = useState<Set<string>>(new Set()),
     [bulkStatus, setBulkStatus] = useState<(typeof statuses)[number]>("已付款"),
     [sort, setSort] = useState("orderNo"),
-    [dir, setDir] = useState<"asc"|"desc">("asc");
+    [dir, setDir] = useState<"asc"|"desc">("desc");
   const [telegramImport, setTelegramImport] = useState(false);
   const update = (k: keyof Filters, v: string) => {
     setFilters((f) => ({ ...f, [k]: v }));
@@ -510,13 +509,14 @@ export default function Page() {
                   </thead>
                   <tbody>
                     {data?.items.map((o) => (
-                      <tr key={o._id}>
+                      <tr key={o._id} className="order-row-editable" onClick={() => setEditor(o)} title="点击订单资料即可编辑">
                         <td className="selection-cell">
                           <input
                             type="checkbox"
                             aria-label={"选择 " + o.orderNo}
                             checked={selected.has(o._id)}
                             disabled={busy}
+                            onClick={(event) => event.stopPropagation()}
                             onChange={() => toggleSelected(o._id)}
                           />
                         </td>
@@ -530,7 +530,7 @@ export default function Page() {
                         <td>
                           <button
                             className="person payment-link"
-                            onClick={() => showPayment(o.companion)}
+                            onClick={(event) => { event.stopPropagation(); showPayment(o.companion); }}
                             aria-label={"查看 " + o.companion + " 的付款资料"}
                           >
                             <span className={"person-icon " + o.type}>
@@ -579,16 +579,9 @@ export default function Page() {
                         <td>
                           <div className="row-actions">
                             <button
-                              className="icon-btn"
-                              aria-label={"编辑 " + o.orderNo}
-                              onClick={() => setEditor(o)}
-                            >
-                              <Pencil size={15} />
-                            </button>
-                            <button
                               className="icon-btn delete"
                               aria-label={"删除 " + o.orderNo}
-                              onClick={() => setDeleting(o)}
+                              onClick={(event) => { event.stopPropagation(); setDeleting(o); }}
                             >
                               <Trash2 size={15} />
                             </button>

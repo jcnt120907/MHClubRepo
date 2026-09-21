@@ -776,6 +776,13 @@ td {
 tr:hover td {
   background: #fafbfe;
 }
+.order-row-editable td {
+  cursor: pointer;
+}
+.order-row-editable button,
+.order-row-editable input {
+  cursor: pointer;
+}
 td small {
   display: block;
   font-size: 10px;
