@@ -30,6 +30,8 @@ import {
   calculate,
   category,
   services,
+  halfHourPrices,
+  unitPriceFor,
   statuses,
   types,
   type Input,
@@ -861,7 +863,7 @@ function Editor({
                     ...v,
                     type: k as Input["type"],
                     service: k === "L" ? "礼物" : k === "P" ? "手游" : "文字",
-                    unitPrice: k === "L" ? 0 : k === "P" ? 16 : 15,
+                    unitPrice: k === "L" ? 0 : unitPriceFor(k === "P" ? "手游" : "文字", 1),
                     quantity: k === "L" ? 0 : 1,
                     addons: [],
                   })
@@ -1024,7 +1026,7 @@ function Editor({
                     setV({
                       ...v,
                       service: e.target.value,
-                      unitPrice: services[e.target.value],
+                      unitPrice: unitPriceFor(e.target.value, v.quantity),
                     })
                   }
                 >
@@ -1036,7 +1038,7 @@ function Editor({
                 </select>
               </label>
               <label>
-                单价（RM）
+                单价（RM / 小时）
                 <input
                   required
                   type="number"
@@ -1046,9 +1048,10 @@ function Editor({
                   value={v.unitPrice}
                   onChange={(e) => set("unitPrice", Number(e.target.value))}
                 />
+                {halfHourPrices[v.service as keyof typeof services] !== undefined && <small className="field-help">半小时套餐：RM {halfHourPrices[v.service as keyof typeof services]}</small>}
               </label>
               <label>
-                {v.service === "陪看" ? "份数（每份2小时）" : "小时 / 局"}
+                小时 / 局
                 <input
                   required
                   type="number"
@@ -1056,7 +1059,10 @@ function Editor({
                   max="10000"
                   step="0.01"
                   value={v.quantity}
-                  onChange={(e) => set("quantity", Number(e.target.value))}
+                  onChange={(e) => {
+                    const quantity = Number(e.target.value);
+                    setV({ ...v, quantity, unitPrice: unitPriceFor(v.service, quantity) });
+                  }}
                 />
               </label>
             </div>

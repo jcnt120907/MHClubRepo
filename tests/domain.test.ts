@@ -7,6 +7,7 @@ import {
   normalizeService,
   orderNumber,
   category,
+  unitPriceFor,
   type Input,
 } from "../lib/domain";
 const base = inputSchema.parse(rows[0]);
@@ -26,6 +27,16 @@ test("price overrides, fractional quantities and gifts", () => {
     calculate({ ...base, unitPrice: 10, quantity: 1.5, gift: 5 }),
     { total: 26, wage: 19.75, remaining: 6.25 },
   );
+});
+test("half-hour packages use their current fixed prices", () => {
+  const halfHour = (service: Input["service"], expected: number) => {
+    const input = { ...base, type: category(service), service, quantity: 0.5, unitPrice: unitPriceFor(service, 0.5), addons: [], gift: 0 } as Input;
+    assert.equal(calculate(inputSchema.parse(input)).total, expected, service);
+  };
+  halfHour("手游", 10); halfHour("端游", 20); halfHour("文字", 9); halfHour("语音条", 13);
+  halfHour("语音通话", 17); halfHour("视频", 37); halfHour("哄睡", 16); halfHour("虚拟恋人买断", 37);
+  halfHour("虚拟恋人不买断", 27); halfHour("头像", 4); halfHour("陪看", 17);
+  assert.equal(unitPriceFor("手游", 1), 16);
 });
 test("exclusive payout and star/popular precedence", () => {
   assert.equal(

@@ -8,14 +8,34 @@ export const services: Record<string, number> = {
   语音通话: 23,
   视频: 57,
   虚拟恋人不买断: 35,
-  虚拟恋人买断: 47,
-  哄睡: 21,
+  虚拟恋人买断: 50,
+  哄睡: 27,
   挂睡: 8,
-  陪看: 27,
+  陪看: 15,
   树洞: 20,
   受气包: 20,
   头像: 7,
 };
+// `unitPrice` stays an hourly rate so that existing orders and custom prices
+// keep their meaning.  Half-hour packages have their own fixed charge, so the
+// suggested hourly rate is doubled when quantity is 0.5.
+export const halfHourPrices: Partial<Record<keyof typeof services, number>> = {
+  手游: 10,
+  端游: 20,
+  文字: 9,
+  语音条: 13,
+  语音通话: 17,
+  视频: 37,
+  哄睡: 16,
+  虚拟恋人买断: 37,
+  虚拟恋人不买断: 27,
+  头像: 4,
+  陪看: 17,
+};
+export function unitPriceFor(service: string, quantity: number) {
+  const halfHour = halfHourPrices[service as keyof typeof services];
+  return quantity === 0.5 && halfHour !== undefined ? halfHour * 2 : services[service];
+}
 export const types = { P: "陪玩", T: "语聊", L: "礼物" };
 export const addons = {
   night: { label: "夜单", price: 4 },
