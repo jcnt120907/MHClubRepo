@@ -109,6 +109,13 @@ export default function Page() {
     setPage(1);
   };
   useEffect(() => {
+    const orderNo = new URLSearchParams(window.location.search).get("orderNo")?.trim();
+    if (!orderNo) return;
+    setSearch(orderNo);
+    setFilters((current) => ({ ...current, q: orderNo, from: "", to: "" }));
+    setPage(1);
+  }, []);
+  useEffect(() => {
     const timer = setTimeout(() => {
       setFilters((current) =>
         current.q === search ? current : { ...current, q: search },

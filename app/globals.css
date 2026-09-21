@@ -788,6 +788,17 @@ td small {
   font-size: 13px;
   font-weight: 600;
 }
+.storage-order-link {
+  color: #445772;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  text-decoration: none;
+}
+.storage-order-link:hover {
+  color: var(--pink-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .muted {
   color: var(--muted);
 }
