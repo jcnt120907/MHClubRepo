@@ -99,6 +99,8 @@ export default function Page() {
     [editor, setEditor] = useState<Order | "new" | null>(null),
     [deleting, setDeleting] = useState<Order | null>(null),
     [paymentFor, setPaymentFor] = useState<Companion | null>(null),
+    [paymentLoading, setPaymentLoading] = useState(false),
+    [paymentName, setPaymentName] = useState(""),
     [busy, setBusy] = useState(false),
     [toast, setToast] = useState(""),
     [selected, setSelected] = useState<Set<string>>(new Set()),
@@ -171,10 +173,13 @@ export default function Page() {
     setToast(message);
   };
   async function showPayment(order: Order) {
+    setPaymentName(order.companion);
     try {
       const cacheKey = order.companionId || order.companion;
       const cached = paymentCache.current[cacheKey];
-      if (cached) { setPaymentFor(cached); return; }
+      if (cached) { setPaymentLoading(false); setPaymentFor(cached); return; }
+      setPaymentFor(null);
+      setPaymentLoading(true);
       const r = await fetch(order.companionId ? "/api/companions/" + order.companionId : "/api/companions?q=" + encodeURIComponent(order.companion));
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
@@ -184,6 +189,8 @@ export default function Page() {
       setPaymentFor(member);
     } catch (e) {
       setToast(e instanceof Error ? e.message : "付款资料加载失败");
+    } finally {
+      setPaymentLoading(false);
     }
   }
   async function remove() {
@@ -686,12 +693,12 @@ export default function Page() {
           </div>
         </Modal>
       )}
-      {paymentFor && (
+      {(paymentFor || paymentLoading) && (
         <Modal
-          title={"付款资料 · " + paymentFor.name}
-          onClose={() => setPaymentFor(null)}
+          title={"付款资料 · " + (paymentFor?.name || paymentName)}
+          onClose={() => { setPaymentFor(null); setPaymentLoading(false); }}
         >
-          <div className="payment-details">
+          {paymentLoading ? <div className="payment-loading" role="status"><span className="payment-spinner" />加载付款资料…</div> : paymentFor && <div className="payment-details">
             <div>
               <span>付款方式</span>
               <strong>{paymentFor.paymentMethod || "未填写"}</strong>
@@ -713,7 +720,7 @@ export default function Page() {
                 关闭
               </button>
             </div>
-          </div>
+          </div>}
         </Modal>
       )}
       {toast && (
