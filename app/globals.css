@@ -1431,6 +1431,7 @@ th,
 .podium-1{background:#fff3d8;color:#b47a16}.podium-2{background:#edf2fb;color:#647c9e}.podium-3{background:#fceee6;color:#ad795b}
 .rank-person>div{text-align:right}.rank-person b{font-size:18px}.rank-person small{font-size:11px;color:#8b95a6;font-weight:400}.rank-person>div>span{display:block;font-size:12px;color:#7a8698;margin-top:4px}
 .rank-empty{padding:22px;text-align:center;color:#8793a5}
+.rank-actions{display:flex;align-items:center;gap:9px}.rank-copy{display:inline-flex;align-items:center;gap:6px;padding:8px 11px;font-size:12px}.rank-loading{display:grid;justify-items:center;gap:9px;min-height:270px;padding:72px 20px;border:1px solid #f0dce5;border-radius:18px;background:linear-gradient(145deg,#fff8fb,#fff);color:#8f7480;text-align:center}.rank-loading svg{color:#c06489;animation:rank-spin 1s linear infinite}.rank-loading strong{color:#5b414b;font-size:15px}.rank-loading span{font-size:12px}@keyframes rank-spin{to{transform:rotate(360deg)}}
 .performance-cell b,.performance-cell small{display:block}.performance-cell small{margin-top:5px;color:#738095}
 .payment-link{border:0;background:transparent;padding:0;text-align:left;cursor:pointer;font:inherit;color:inherit}.payment-link:hover b{color:#3564d7;text-decoration:underline}
 .payment-summary small{display:flex;align-items:center;gap:4px;color:#657999;margin-top:5px}
@@ -1660,7 +1661,7 @@ th,
 }
 @media(max-width:760px){.payment-table th:nth-child(4),.payment-table td:nth-child(4){display:none}.payment-table th:nth-child(2){width:20%}.payment-table th:nth-child(3){width:30%}.payment-table .person-icon{display:none}}
 @media(max-width:760px){
-.rank-grid{grid-template-columns:1fr;padding:4px 14px}.rank-caption{margin:12px 14px}
+.rank-grid{grid-template-columns:1fr;padding:4px 14px}.rank-caption{margin:12px 14px}.leaderboard .panel-title{align-items:flex-start;gap:12px;flex-direction:column}.rank-actions{width:100%;justify-content:space-between}.rank-copy{flex:1;justify-content:center}
 .roster-table.performance-table th:nth-child(3),.roster-table.performance-table td:nth-child(3),.roster-table.performance-table th:nth-child(4),.roster-table.performance-table td:nth-child(4){display:table-cell}
 .roster-table.performance-table th:nth-child(2),.roster-table.performance-table td:nth-child(2){display:none}
 .roster-table.performance-table th:first-child{width:25%}.roster-table.performance-table th:last-child{width:25%}

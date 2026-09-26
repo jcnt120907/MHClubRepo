@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LoaderCircle } from "lucide-react";
 import Workspace from "../components/Workspace";
 import Leaderboard, { type RankEntry } from "../components/Leaderboard";
 
@@ -20,10 +21,11 @@ export default function LeaderboardPage() {
   const [monthly, setMonthly] = useState<RankEntry[]>([]);
   const [allTime, setAllTime] = useState<RankEntry[]>([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const controller = new AbortController();
-    setError("");
+    setError(""); setLoading(true);
     fetch("/api/leaderboard?month=" + encodeURIComponent(month), {
       signal: controller.signal,
     })
@@ -37,7 +39,7 @@ export default function LeaderboardPage() {
       })
       .catch((e) => {
         if (!controller.signal.aborted) setError(e.message || "加载失败");
-      });
+      }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [month]);
 
@@ -48,7 +50,7 @@ export default function LeaderboardPage() {
           <div>
             <div className="eyebrow">COMPANION RANKING</div>
             <h1>陪陪单量排行榜</h1>
-            <p>按订单笔数统计，收入以陪陪工资计算。</p>
+            <p>按服务时长计算单量，收入以陪陪工资计算。</p>
           </div>
         </div>
         <div className="month-toolbar">
@@ -61,9 +63,9 @@ export default function LeaderboardPage() {
               onChange={(e) => e.target.value && setMonth(e.target.value)}
             />
           </label>
-          <span>月榜包含陪玩、语聊及礼物单；总榜统计全部月份。</span>
+          <span>半小时 = 1 单量、1 小时 = 2 单量；不计算礼物单。</span>
         </div>
-        {error ? (
+        {loading ? <div className="rank-loading" role="status"><LoaderCircle size={26}/><strong>正在统计排行榜…</strong><span>正在整理陪陪服务时长与收入</span></div> : error ? (
           <div className="empty error" role="alert">
             <h3>暂时无法加载排行榜</h3>
             <p>{error}</p>
