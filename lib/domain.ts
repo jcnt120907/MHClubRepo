@@ -16,9 +16,8 @@ export const services: Record<string, number> = {
   受气包: 20,
   头像: 7,
 };
-// `unitPrice` stays an hourly rate so that existing orders and custom prices
-// keep their meaning.  Half-hour packages have their own fixed charge, so the
-// suggested hourly rate is doubled when quantity is 0.5.
+// Half-hour packages have a fixed charge.  In a half-hour order `unitPrice`
+// represents that package charge; otherwise it remains an hourly rate.
 export const halfHourPrices: Partial<Record<keyof typeof services, number>> = {
   手游: 10,
   端游: 20,
@@ -34,7 +33,7 @@ export const halfHourPrices: Partial<Record<keyof typeof services, number>> = {
 };
 export function unitPriceFor(service: string, quantity: number) {
   const halfHour = halfHourPrices[service as keyof typeof services];
-  return quantity === 0.5 && halfHour !== undefined ? halfHour * 2 : services[service];
+  return quantity === 0.5 && halfHour !== undefined ? halfHour : services[service];
 }
 export const types = { P: "陪玩", T: "语聊", L: "礼物" };
 export const addons = {
@@ -145,7 +144,10 @@ export type Input = z.infer<typeof inputSchema>;
 export function calculate(v: Input) {
   const add =
     v.type === "L" ? 0 : v.addons.reduce((sum, k) => sum + addonPrice(k, v.service), 0);
-  const sub = new Decimal(v.unitPrice).plus(add).times(v.quantity);
+  const halfHourPackage = v.quantity === 0.5 && halfHourPrices[v.service as keyof typeof services] !== undefined;
+  const sub = halfHourPackage
+    ? new Decimal(v.unitPrice).plus(add)
+    : new Decimal(v.unitPrice).plus(add).times(v.quantity);
   const rate = v.addons.some((k) => k === "star" || k === "popular")
     ? 0.8
     : v.addons.includes("exclusive")

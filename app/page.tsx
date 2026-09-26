@@ -766,7 +766,12 @@ function Editor({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [v, setV] = useState<Input>(order === "new" ? fresh() : order),
+  const [v, setV] = useState<Input>(() => {
+      if (order === "new") return fresh();
+      return order.quantity === 0.5 && halfHourPrices[order.service as keyof typeof services] !== undefined
+        ? { ...order, unitPrice: unitPriceFor(order.service, order.quantity) }
+        : order;
+    }),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [members, setMembers] = useState<Companion[]>([]);
@@ -1043,7 +1048,7 @@ function Editor({
                 </select>
               </label>
               <label>
-                单价（RM / 小时）
+                单价（RM / {v.quantity === 0.5 && halfHourPrices[v.service as keyof typeof services] !== undefined ? "半小时" : "小时"}）
                 <input
                   required
                   type="number"

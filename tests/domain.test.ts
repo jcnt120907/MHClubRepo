@@ -36,6 +36,7 @@ test("half-hour packages use their current fixed prices", () => {
   halfHour("手游", 10); halfHour("端游", 20); halfHour("文字", 9); halfHour("语音条", 13);
   halfHour("语音通话", 17); halfHour("视频", 37); halfHour("哄睡", 16); halfHour("虚拟恋人买断", 37);
   halfHour("虚拟恋人不买断", 27); halfHour("头像", 4); halfHour("陪看", 17);
+  assert.equal(calculate(inputSchema.parse({ ...base, type: "T", service: "文字", quantity: 0.5, unitPrice: unitPriceFor("文字", 0.5), addons: ["night", "exclusive"], gift: 0 })).total, 16);
   assert.equal(unitPriceFor("手游", 1), 16);
 });
 test("exclusive payout and star/popular precedence", () => {
