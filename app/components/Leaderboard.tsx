@@ -22,7 +22,7 @@ export default function Leaderboard({ monthly, allTime, month }: { monthly: Rank
         : `${index + 1}. ${entry.name}｜${entry.count} 单量｜RM ${entry.earnings.toFixed(2)}`),
       "",
       `总陪陪工资：RM ${totalEarnings.toFixed(2)}`,
-      "统计方式：半小时 = 1 单量，1 小时 = 2 单量；不计算礼物单。",
+      "统计方式：半小时 = 1 单量，1 小时 = 2 单量；礼物单只计入工资金额，不计单量。",
     ];
     const text = lines.join("\n");
     try {
@@ -47,8 +47,8 @@ export default function Leaderboard({ monthly, allTime, month }: { monthly: Rank
       </div>
     </div>
     <p className="rank-caption">{label} · 按服务时长单量排名，同单量按收入排序</p>
-    <div className="rank-grid">{entries.slice(0, 10).map(entry => <div className="rank-person" key={entry.id}><span className={`rank-number podium-${entry.rank}`}>{String(entry.rank).padStart(2, "0")}</span><strong>{entry.name}</strong><div><b>{entry.count} <small>单量</small></b><span>RM {entry.earnings.toFixed(2)}</span></div></div>)}</div>
-    {!entries.length && <p className="rank-empty">{period === "monthly" ? "这个月还没有服务订单" : "还没有服务订单记录"}</p>}
-    <p className="rank-caption">显示前10名 · 半小时 = 1 单量、1 小时 = 2 单量；收入为陪陪工资，不计算礼物单。</p>
+    <div className="rank-grid">{entries.map(entry => <div className="rank-person" key={entry.id}><span className={`rank-number podium-${entry.rank}`}>{String(entry.rank).padStart(2, "0")}</span><strong>{entry.name}</strong><div><b>{entry.count} <small>单量</small></b><span>RM {entry.earnings.toFixed(2)}</span></div></div>)}</div>
+    {!entries.length && <p className="rank-empty">{period === "monthly" ? "这个月还没有订单" : "还没有订单记录"}</p>}
+    <p className="rank-caption">显示全部陪陪 · 半小时 = 1 单量、1 小时 = 2 单量；礼物单只计入陪陪工资金额，不计单量。</p>
   </section>;
 }
