@@ -13,13 +13,15 @@ export default function Leaderboard({ monthly, allTime, month }: { monthly: Rank
 
   const copyChatRecord = async (kind: "top" | "all") => {
     const selected = kind === "top" ? entries.slice(0, 10) : entries;
+    const totalEarnings = selected.reduce((sum, entry) => sum + entry.earnings, 0);
     const lines = [
       `🏆 棉花俱乐部陪陪单量排行榜｜${label}`,
       "",
       ...selected.map((entry, index) => kind === "top"
         ? `${index + 1}. ${entry.name}｜${entry.count} 单量｜RM ${entry.earnings.toFixed(2)}`
-        : `${index + 1}. ${entry.name}｜${entry.count} 单量`),
+        : `${index + 1}. ${entry.name}｜${entry.count} 单量｜RM ${entry.earnings.toFixed(2)}`),
       "",
+      `总陪陪工资：RM ${totalEarnings.toFixed(2)}`,
       "统计方式：半小时 = 1 单量，1 小时 = 2 单量；不计算礼物单。",
     ];
     const text = lines.join("\n");
