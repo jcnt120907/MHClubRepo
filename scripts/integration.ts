@@ -5,6 +5,7 @@ import { createOrder, listOrders, updateOrder, prepare } from "../lib/db";
 import { seedSeptember } from "../lib/seed";
 import { statsChecks } from "./stats-checks";
 import { companionChecks } from "./companion-checks";
+import { confirmCompanionPayments, pendingCompanionPayments } from "../lib/companion-payments";
 process.env.MONGODB_URI = "mongodb://127.0.0.1:27017";
 process.env.MONGODB_DB = "peiwan_test_" + Date.now();
 const db = await prepare();
@@ -104,6 +105,15 @@ try {
     (await db.collection("orders").findOne({ sourceKey: "sep26:2" }))?.notes,
     "保留编辑",
   );
+  const payable = await createOrder({ ...input, date: "2026-09-10", status: "可发放" });
+  const companion = await db.collection("companions").findOne({ name: "测试陪陪", isDeleted: false });
+  assert.ok(companion);
+  const payoutPreview = await pendingCompanionPayments("2026-09", "1");
+  assert.ok(payoutPreview.items.some((item) => item.companionId === companion._id.toString() && item.orders.some((order) => order.id === payable._id)));
+  const payout = await confirmCompanionPayments({ companionIds: [companion._id.toString()], month: "2026-09", half: "1", paidAt: "2026-09-15", notes: "integration" });
+  assert.ok(payout.paid.some((item) => item.companionId === companion._id.toString()));
+  assert.equal((await db.collection("orders").findOne({ _id: new ObjectId(payable._id) }))?.status, "已付款");
+  assert.equal(await db.collection("companionPayments").countDocuments({ companionId: companion._id.toString() }), 1);
   console.log(
     "Integration passed: concurrency, reusable IDs, CRUD, filters, pagination, totals, reconnect and seed preserves edits/deletions.",
   );

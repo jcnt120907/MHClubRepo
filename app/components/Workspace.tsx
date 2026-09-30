@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { Clock3, Headphones, Layers3, Trophy, UsersRound } from "lucide-react";
+import { Banknote, Clock3, Headphones, Layers3, Trophy, UsersRound } from "lucide-react";
 import BrandMark from "./BrandMark";
 export default function Workspace({
   section,
   children,
 }: {
-  section: "orders" | "companions" | "leaderboard" | "customerServices" | "storedOrders";
+  section: "orders" | "companions" | "leaderboard" | "customerServices" | "storedOrders" | "companionPayments";
   children: React.ReactNode;
 }) {
   const title =
@@ -13,7 +13,7 @@ export default function Workspace({
       ? "订单管理"
       : section === "companions"
         ? "陪陪管理"
-        : section === "customerServices" ? "客服管理" : section === "storedOrders" ? "存单管理" : "排行榜";
+        : section === "customerServices" ? "客服管理" : section === "storedOrders" ? "存单管理" : section === "companionPayments" ? "陪陪付款" : "排行榜";
   return (
     <div className="shell">
       <aside className="sidebar">
@@ -61,6 +61,9 @@ export default function Workspace({
           <Link href="/stored-orders" className={section === "storedOrders" ? "nav-active" : "nav-item"} aria-current={section === "storedOrders" ? "page" : undefined}>
             <Clock3 size={19} />存单管理<span>05</span>
           </Link>
+          <Link href="/companion-payments" className={section === "companionPayments" ? "nav-active" : "nav-item"} aria-current={section === "companionPayments" ? "page" : undefined}>
+            <Banknote size={19} />陪陪付款<span>06</span>
+          </Link>
         </nav>
         <div className="sidebar-bottom">
           <BrandMark compact />
@@ -96,6 +99,7 @@ export default function Workspace({
             </Link>
             <Link href="/customer-services" aria-current={section === "customerServices" ? "page" : undefined}>客服</Link>
             <Link href="/stored-orders" aria-current={section === "storedOrders" ? "page" : undefined}>存单</Link>
+            <Link href="/companion-payments" aria-current={section === "companionPayments" ? "page" : undefined}>付款</Link>
           </nav>
         </header>
         {children}

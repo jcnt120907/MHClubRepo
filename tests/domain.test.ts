@@ -10,6 +10,7 @@ import {
   unitPriceFor,
   type Input,
 } from "../lib/domain";
+import { settlementPeriod } from "../lib/companion-payments";
 const base = inputSchema.parse(rows[0]);
 test("all 24 workbook records reconcile", () => {
   assert.equal(rows.length, 24);
@@ -95,4 +96,9 @@ test("service aliases and numbers expand past 9999", () => {
   assert.equal(normalizeService("受气包/树洞"), "树洞");
   assert.equal(orderNumber("P", 1), "P0001");
   assert.equal(orderNumber("P", 10000), "P10000");
+});
+test("half-month settlement periods use the correct month end", () => {
+  assert.deepEqual(settlementPeriod("2026-02", "1"), { month: "2026-02", half: "1", start: "2026-02-01", end: "2026-02-15", label: "2026-02 上半月（1–15日）" });
+  assert.deepEqual(settlementPeriod("2026-02", "2"), { month: "2026-02", half: "2", start: "2026-02-16", end: "2026-02-28", label: "2026-02 下半月（16–28日）" });
+  assert.throws(() => settlementPeriod("2026-13", "1"));
 });
