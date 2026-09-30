@@ -1661,7 +1661,7 @@ th,
 }
 @media(max-width:760px){.payment-table th:nth-child(4),.payment-table td:nth-child(4){display:none}.payment-table th:nth-child(2){width:20%}.payment-table th:nth-child(3){width:30%}.payment-table .person-icon{display:none}}
 @media(max-width:760px){
-.rank-grid{grid-template-columns:1fr;padding:4px 14px}.rank-caption{margin:12px 14px}.leaderboard .panel-title{align-items:flex-start;gap:12px;flex-direction:column}.rank-actions{width:100%;justify-content:space-between}.rank-copy{flex:1;justify-content:center}
+.rank-grid{grid-template-columns:1fr;padding:4px 14px}.rank-caption{margin:12px 14px}.leaderboard .panel-title{align-items:flex-start;gap:12px;flex-direction:column}.rank-actions{width:100%;justify-content:space-between;flex-wrap:wrap}.rank-switch{width:100%}.rank-switch button{flex:1}.rank-copy{flex:1;justify-content:center}
 .roster-table.performance-table th:nth-child(3),.roster-table.performance-table td:nth-child(3),.roster-table.performance-table th:nth-child(4),.roster-table.performance-table td:nth-child(4){display:table-cell}
 .roster-table.performance-table th:nth-child(2),.roster-table.performance-table td:nth-child(2){display:none}
 .roster-table.performance-table th:first-child{width:25%}.roster-table.performance-table th:last-child{width:25%}
