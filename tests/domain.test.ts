@@ -7,6 +7,7 @@ import {
   normalizeService,
   orderNumber,
   category,
+  telegramServiceName,
   unitPriceFor,
   type Input,
 } from "../lib/domain";
@@ -96,6 +97,19 @@ test("service aliases and numbers expand past 9999", () => {
   assert.equal(normalizeService("受气包/树洞"), "树洞");
   assert.equal(orderNumber("P", 1), "P0001");
   assert.equal(orderNumber("P", 10000), "P10000");
+});
+test("Telegram report services keep their configured names", () => {
+  assert.equal(telegramServiceName("T", "挂睡 1小时"), "挂睡");
+  assert.equal(telegramServiceName("T", "哄睡 半小时"), "哄睡");
+  assert.equal(telegramServiceName("T", "虚拟恋人不买断 1小时"), "虚拟恋人不买断");
+  assert.equal(telegramServiceName("T", "虚拟恋人买断 1小时"), "虚拟恋人买断");
+  assert.equal(telegramServiceName("T", "陪看 2小时"), "陪看");
+  assert.equal(telegramServiceName("T", "受气包/树洞 1小时"), "树洞");
+  assert.equal(telegramServiceName("T", "受气包 1小时"), "受气包");
+  assert.equal(telegramServiceName("T", "头像单 半小时"), "头像");
+  assert.equal(telegramServiceName("T", "语音条 1小时"), "语音条");
+  assert.equal(telegramServiceName("P", "端瓦 1小时"), "端游");
+  assert.equal(telegramServiceName("P", "手游 HOK 1小时"), "手游");
 });
 test("half-month settlement periods use the correct month end", () => {
   assert.deepEqual(settlementPeriod("2026-02", "1"), { month: "2026-02", half: "1", start: "2026-02-01", end: "2026-02-15", label: "2026-02 上半月（1–15日）" });

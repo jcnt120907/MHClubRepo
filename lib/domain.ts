@@ -69,6 +69,26 @@ export function normalizeService(s: string) {
     )[s] || s
   );
 }
+/** Convert the service wording used in Telegram reports to a saved service. */
+export function telegramServiceName(type: "P" | "T" | "L", raw: string) {
+  if (type === "L") return "礼物";
+  if (type === "P") return /端游|端瓦|瓦/.test(raw) ? "端游" : "手游";
+
+  // Check the longer / more specific names first: “不买断” contains “买断”.
+  if (/虚拟恋人\s*不买断|不买断/.test(raw)) return "虚拟恋人不买断";
+  if (/虚拟恋人.*买断|买断/.test(raw)) return "虚拟恋人买断";
+  if (/挂睡/.test(raw)) return "挂睡";
+  if (/哄睡/.test(raw)) return "哄睡";
+  if (/陪看/.test(raw)) return "陪看";
+  if (/头像/.test(raw)) return "头像";
+  if (/受气包\s*[/／]\s*树洞|树洞/.test(raw)) return "树洞";
+  if (/受气包/.test(raw)) return "受气包";
+  if (/语音条/.test(raw)) return "语音条";
+  if (/视频/.test(raw)) return "视频";
+  if (/文字/.test(raw)) return "文字";
+  if (/通话|电话/.test(raw)) return "语音通话";
+  return "语音通话";
+}
 const money = z
   .number()
   .finite()

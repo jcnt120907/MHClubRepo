@@ -8,12 +8,15 @@ import {
   calculate,
   orderNumber,
   statuses,
+  telegramServiceName,
+  unitPriceFor,
   type Input,
 } from "./domain";
 const globalOrderQuery = globalThis as unknown as {
   companionOptions?: { names: string[]; expiresAt: number };
 };
 const telegramDateRepairMigration = "telegram-four-digit-date-repair-v1";
+const telegramServiceRepairMigration = "telegram-service-name-repair-v1";
 function clearCompanionOptions() {
   globalOrderQuery.companionOptions = undefined;
 }
@@ -43,6 +46,48 @@ export async function prepare() {
       const correct = date ? `${date[3]}-${date[2].padStart(2,"0")}-${date[1].padStart(2,"0")}` : null;
       return correct && correct !== order.date ? db.collection("orders").updateOne({ _id: order._id }, { $set: { date: correct, updatedAt: new Date().toISOString() } }) : Promise.resolve();
     }));
+  }
+  const serviceMigration = await db.collection<{ _id: string }>("migrations").updateOne(
+    { _id: telegramServiceRepairMigration },
+    { $setOnInsert: { completedAt: new Date().toISOString() } },
+    { upsert: true },
+  );
+  if (serviceMigration.upsertedCount) {
+    const affected = await db.collection("orders")
+      .find(
+        { importedFrom: "telegram", type: { $in: ["P", "T"] }, notes: { $regex: "服务[：:]" } },
+        { projection: { type: 1, date: 1, time: 1, companion: 1, companionId: 1, customerService: 1, customerServiceId: 1, quantity: 1, addons: 1, gift: 1, notes: 1, status: 1, service: 1 } },
+      )
+      .toArray();
+    await Promise.all(affected.map(async (order) => {
+      const sourceService = typeof order.notes === "string"
+        ? order.notes.match(/服务\s*[：:]\s*(.*?)(?=\s+(?:礼物|时间|日期|存单|老板)\s*[：:]|$)/)?.[1]?.trim()
+        : undefined;
+      if (!sourceService || (order.type !== "P" && order.type !== "T")) return;
+      const service = telegramServiceName(order.type, sourceService);
+      if (service === order.service) return;
+      const input = {
+        type: order.type,
+        date: order.date,
+        time: order.time,
+        companion: order.companion,
+        ...(order.companionId ? { companionId: order.companionId } : {}),
+        customerService: order.customerService || "",
+        ...(order.customerServiceId ? { customerServiceId: order.customerServiceId } : {}),
+        service,
+        unitPrice: unitPriceFor(service, Number(order.quantity)),
+        quantity: Number(order.quantity),
+        addons: Array.isArray(order.addons) ? order.addons : [],
+        gift: Number(order.gift || 0),
+        notes: order.notes || "",
+        status: order.status,
+      } as Input;
+      await db.collection("orders").updateOne(
+        { _id: order._id },
+        { $set: { service, unitPrice: input.unitPrice, ...calculate(input), updatedAt: new Date().toISOString() } },
+      );
+    }));
+    clearCompanionOptions();
   }
   return db;
 }
