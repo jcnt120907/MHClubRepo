@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createOrder } from "@/lib/db";
-import { createCompanion, listCompanions } from "@/lib/companions";
+import { CompanionError, createCompanion, listCompanions } from "@/lib/companions";
+import { nameKey } from "@/lib/companion-domain";
 import { listCustomerServices } from "@/lib/customer-services";
 import { createStoredOrderForImportedOrder } from "@/lib/stored-orders";
 import { addons, telegramServiceName, unitPriceFor, type Input } from "@/lib/domain";
@@ -92,6 +93,21 @@ const parse = (text: string) =>
     .filter(Boolean)
     .map(parseOne)
     .slice(0, 100);
+async function companionForImport(name: string) {
+  const key = nameKey(name);
+  let companion = (await listCompanions()).find((entry) => nameKey(entry.name) === key);
+  if (companion) return companion;
+  try {
+    await createCompanion({ name, notes: "由 Telegram 批量报单自动新增" });
+  } catch (error) {
+    // A name may have a different letter case, spacing, or invisible character.
+    // The roster's unique key correctly identifies it as the same companion.
+    if (!(error instanceof CompanionError && error.status === 409)) throw error;
+  }
+  companion = (await listCompanions()).find((entry) => nameKey(entry.name) === key);
+  if (!companion) throw new Error("无法关联这位陪陪，请稍后再试。");
+  return companion;
+}
 export async function POST(req: NextRequest) {
   try {
     const { text, save } = await req.json();
@@ -104,11 +120,7 @@ export async function POST(req: NextRequest) {
       const input = item.input!;
       const customer = customers.find((entry) => entry.name === input.customerService);
       if (!customer) return NextResponse.json({ error: "客服「" + input.customerService + "」不存在，请先在客服管理新增。", items }, { status: 400 });
-      let companion = (await listCompanions()).find((entry) => entry.name === input.companion);
-      if (!companion) {
-        await createCompanion({ name: input.companion, notes: "由 Telegram 批量报单自动新增" });
-        companion = (await listCompanions()).find((entry) => entry.name === input.companion);
-      }
+      const companion = await companionForImport(input.companion);
       input.companionId = companion?._id.toString();
       input.customerServiceId = customer._id.toString();
       const order = await createOrder(input, { importedFrom: "telegram" }, item.requestedOrderNo);

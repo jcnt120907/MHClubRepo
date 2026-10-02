@@ -12,6 +12,7 @@ import {
   type Input,
 } from "../lib/domain";
 import { settlementPeriod } from "../lib/companion-payments";
+import { nameKey } from "../lib/companion-domain";
 const base = inputSchema.parse(rows[0]);
 test("all 24 workbook records reconcile", () => {
   assert.equal(rows.length, 24);
@@ -110,6 +111,11 @@ test("Telegram report services keep their configured names", () => {
   assert.equal(telegramServiceName("T", "语音条 1小时"), "语音条");
   assert.equal(telegramServiceName("P", "端瓦 1小时"), "端游");
   assert.equal(telegramServiceName("P", "手游 HOK 1小时"), "手游");
+});
+test("companion lookup ignores letter case, spacing and invisible marks", () => {
+  assert.equal(nameKey("Ct"), nameKey("CT"));
+  assert.equal(nameKey(" 回 忆 "), nameKey("回忆"));
+  assert.equal(nameKey("伊奈\u200b"), nameKey("伊奈"));
 });
 test("half-month settlement periods use the correct month end", () => {
   assert.deepEqual(settlementPeriod("2026-02", "1"), { month: "2026-02", half: "1", start: "2026-02-01", end: "2026-02-15", label: "2026-02 上半月（1–15日）" });
