@@ -41,17 +41,40 @@ const rm = (v: number) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(v);
-const initialFilters = {
+type Filters = {
+  q: string;
+  from: string;
+  to: string;
+  type: string;
+  companion: string;
+  service: string;
+  status: string;
+  addon: string;
+};
+function currentMonthFilters(): Filters {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kuala_Lumpur",
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value || "2026";
+  const month = parts.find((part) => part.type === "month")?.value || "01";
+  const lastDay = new Date(Date.UTC(Number(year), Number(month), 0))
+    .getUTCDate()
+    .toString()
+    .padStart(2, "0");
+  return {
   q: "",
-  from: "2026-09-01",
-  to: "2026-09-30",
+  from: `${year}-${month}-01`,
+  to: `${year}-${month}-${lastDay}`,
   type: "",
   companion: "",
   service: "",
   status: "",
   addon: "",
-};
-type Filters = typeof initialFilters;
+  };
+}
+const initialFilters = currentMonthFilters();
 type Data = {
   items: Order[];
   summary: { count: number; total: number; wage: number; remaining: number };
