@@ -16,7 +16,7 @@ const globalOrderQuery = globalThis as unknown as {
   companionOptions?: { names: string[]; expiresAt: number };
 };
 const telegramDateRepairMigration = "telegram-four-digit-date-repair-v1";
-const telegramServiceRepairMigration = "telegram-service-name-repair-v1";
+const telegramServiceRepairMigration = "telegram-service-name-repair-v2";
 function clearCompanionOptions() {
   globalOrderQuery.companionOptions = undefined;
 }

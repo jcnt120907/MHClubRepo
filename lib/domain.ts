@@ -72,7 +72,11 @@ export function normalizeService(s: string) {
 /** Convert the service wording used in Telegram reports to a saved service. */
 export function telegramServiceName(type: "P" | "T" | "L", raw: string) {
   if (type === "L") return "礼物";
-  if (type === "P") return /端游|端瓦|瓦/.test(raw) ? "端游" : "手游";
+  if (type === "P") {
+    // “手瓦” is a mobile game, while “端瓦” is the PC version.
+    if (/手游|手瓦|hok|王者|和平/i.test(raw)) return "手游";
+    return /端游|端瓦|瓦/.test(raw) ? "端游" : "手游";
+  }
 
   // Check the longer / more specific names first: “不买断” contains “买断”.
   if (/虚拟恋人\s*不买断|不买断/.test(raw)) return "虚拟恋人不买断";

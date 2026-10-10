@@ -111,6 +111,7 @@ test("Telegram report services keep their configured names", () => {
   assert.equal(telegramServiceName("T", "语音条 1小时"), "语音条");
   assert.equal(telegramServiceName("P", "端瓦 1小时"), "端游");
   assert.equal(telegramServiceName("P", "手游 HOK 1小时"), "手游");
+  assert.equal(telegramServiceName("P", "手游 手瓦 1小时"), "手游");
 });
 test("companion lookup ignores letter case, spacing and invisible marks", () => {
   assert.equal(nameKey("Ct"), nameKey("CT"));
