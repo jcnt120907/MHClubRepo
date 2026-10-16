@@ -80,6 +80,19 @@ test("money rounds half up and balances", () => {
     { total: 0.02, wage: 0.02, remaining: 0 },
   );
 });
+test("mixed day and night shifts only charge the night hours", () => {
+  const mixed = inputSchema.parse({
+    ...base,
+    type: "P",
+    service: "手游",
+    unitPrice: 16,
+    quantity: 2,
+    addons: ["night"],
+    addonUnits: { night: 1 },
+    gift: 0,
+  });
+  assert.deepEqual(calculate(mixed), { total: 36, wage: 27, remaining: 9 });
+});
 test("reject invalid date, types, quantities, amounts", () => {
   for (const value of [
     { date: "2026-02-30" },

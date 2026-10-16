@@ -67,6 +67,8 @@ const parseOne = (raw: string): Parsed => {
   if (storageMinutes !== undefined && type === "L") errors.push("礼物单不能建立存单");
   if (ownerText && (!ownerSource || !ownerId)) warnings.push("老板资料请使用「IG @账号」或「Telegram @账号」格式");
   const addonKeys = Object.entries(addons).filter(([, addon]) => raw.includes(addon.label) || (addon.label === "夜单" && /[（(]\s*夜\s*[）)]/.test(raw))).map(([key]) => key as keyof typeof addons);
+  const nightUnits = [...raw.matchAll(/(\d+(?:\.\d+)?)\s*夜(?:单)?/g)].reduce((sum, match) => sum + Number(match[1]), 0);
+  if (nightUnits > 0) addonKeys.push("night");
   if (companionRaw.includes("优等")) addonKeys.push("excellent");
   if (companionRaw.includes("独家")) addonKeys.push("exclusive");
   if (companionRaw.includes("声优")) addonKeys.push("voice");
@@ -81,7 +83,7 @@ const parseOne = (raw: string): Parsed => {
   if (type === "L" && /夜|续|通话/.test(serviceText)) warnings.push("礼物单已只保留礼物金额；原服务文字会存入备注");
   if (type === "P" && /hok/i.test(serviceText)) warnings.push("HOK 已按手游默认价格计算，原服务名称会存入备注");
   const quantity = type === "L" ? 0 : Number((minutes / 60).toFixed(2));
-  if (type && date && start !== null) return { raw, requestedOrderNo, storageMinutes: storageMinutes ?? undefined, ownerSource, ownerId, errors, warnings, input: { type, date, time: String(Math.floor(start/60)).padStart(2,"0") + ":" + String(start%60).padStart(2,"0"), companion, customerService, service, unitPrice: type === "L" ? 0 : unitPriceFor(service, quantity), quantity, addons: uniqueAddons, gift: type === "L" ? amount : amount, notes: "Telegram 报单：" + raw.replace(/\s+/g," ").trim(), status: storageMinutes ? "进行中" : "可发放" } };
+  if (type && date && start !== null) return { raw, requestedOrderNo, storageMinutes: storageMinutes ?? undefined, ownerSource, ownerId, errors, warnings, input: { type, date, time: String(Math.floor(start/60)).padStart(2,"0") + ":" + String(start%60).padStart(2,"0"), companion, customerService, service, unitPrice: type === "L" ? 0 : unitPriceFor(service, quantity), quantity, addons: uniqueAddons, ...(nightUnits > 0 ? { addonUnits: { night: nightUnits } } : {}), gift: type === "L" ? amount : amount, notes: "Telegram 报单：" + raw.replace(/\s+/g," ").trim(), status: storageMinutes ? "进行中" : "可发放" } };
   return { raw, requestedOrderNo, errors, warnings };
 };
 // Telegram messages are often pasted as one continuous paragraph.  A new `单号`

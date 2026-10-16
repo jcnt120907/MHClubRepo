@@ -140,6 +140,9 @@ export const inputSchema = z
       )
       .max(7)
       .transform((a) => [...new Set(a)]),
+    // Normally an add-on applies to every hour (or once for a half-hour
+    // package). Telegram reports can specify a mixed shift such as 1白 1夜.
+    addonUnits: z.record(z.string(), z.number().finite().min(0).max(10000)).optional(),
     gift: money,
     notes: z.string().trim().max(2000),
     status: z.enum(statuses),
@@ -166,12 +169,16 @@ export const inputSchema = z
   });
 export type Input = z.infer<typeof inputSchema>;
 export function calculate(v: Input) {
-  const add =
-    v.type === "L" ? 0 : v.addons.reduce((sum, k) => sum + addonPrice(k, v.service), 0);
   const halfHourPackage = v.quantity === 0.5 && halfHourPrices[v.service as keyof typeof services] !== undefined;
-  const sub = halfHourPackage
-    ? new Decimal(v.unitPrice).plus(add)
-    : new Decimal(v.unitPrice).plus(add).times(v.quantity);
+  const defaultAddonUnits = halfHourPackage ? 1 : v.quantity;
+  const add = v.type === "L" ? new Decimal(0) : v.addons.reduce(
+    (sum, k) => sum.plus(new Decimal(addonPrice(k, v.service)).times(v.addonUnits?.[k] ?? defaultAddonUnits)),
+    new Decimal(0),
+  );
+  const serviceAmount = halfHourPackage
+    ? new Decimal(v.unitPrice)
+    : new Decimal(v.unitPrice).times(v.quantity);
+  const sub = serviceAmount.plus(add);
   const rate = v.addons.some((k) => k === "star" || k === "popular")
     ? 0.8
     : v.addons.includes("exclusive")

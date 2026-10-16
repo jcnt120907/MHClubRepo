@@ -17,6 +17,7 @@ const globalOrderQuery = globalThis as unknown as {
 };
 const telegramDateRepairMigration = "telegram-four-digit-date-repair-v1";
 const telegramServiceRepairMigration = "telegram-service-name-repair-v2";
+const telegramMixedShiftRepairMigration = "telegram-mixed-shift-repair-v1";
 function clearCompanionOptions() {
   globalOrderQuery.companionOptions = undefined;
 }
@@ -56,7 +57,7 @@ export async function prepare() {
     const affected = await db.collection("orders")
       .find(
         { importedFrom: "telegram", type: { $in: ["P", "T"] }, notes: { $regex: "服务[：:]" } },
-        { projection: { type: 1, date: 1, time: 1, companion: 1, companionId: 1, customerService: 1, customerServiceId: 1, quantity: 1, addons: 1, gift: 1, notes: 1, status: 1, service: 1 } },
+        { projection: { type: 1, date: 1, time: 1, companion: 1, companionId: 1, customerService: 1, customerServiceId: 1, quantity: 1, addons: 1, addonUnits: 1, gift: 1, notes: 1, status: 1, service: 1 } },
       )
       .toArray();
     await Promise.all(affected.map(async (order) => {
@@ -78,6 +79,7 @@ export async function prepare() {
         unitPrice: unitPriceFor(service, Number(order.quantity)),
         quantity: Number(order.quantity),
         addons: Array.isArray(order.addons) ? order.addons : [],
+        ...(order.addonUnits && typeof order.addonUnits === "object" && !Array.isArray(order.addonUnits) ? { addonUnits: order.addonUnits } : {}),
         gift: Number(order.gift || 0),
         notes: order.notes || "",
         status: order.status,
@@ -88,6 +90,51 @@ export async function prepare() {
       );
     }));
     clearCompanionOptions();
+  }
+  const mixedShiftMigration = await db.collection<{ _id: string }>("migrations").updateOne(
+    { _id: telegramMixedShiftRepairMigration },
+    { $setOnInsert: { completedAt: new Date().toISOString() } },
+    { upsert: true },
+  );
+  if (mixedShiftMigration.upsertedCount) {
+    const affected = await db.collection("orders")
+      .find(
+        { importedFrom: "telegram", notes: { $regex: "白.*夜|夜.*白" }, type: { $in: ["P", "T"] } },
+        { projection: { type: 1, date: 1, time: 1, companion: 1, companionId: 1, customerService: 1, customerServiceId: 1, service: 1, unitPrice: 1, quantity: 1, addons: 1, addonUnits: 1, gift: 1, notes: 1, status: 1 } },
+      )
+      .toArray();
+    await Promise.all(affected.map(async (order) => {
+      const nightUnits = typeof order.notes === "string"
+        ? [...order.notes.matchAll(/(\d+(?:\.\d+)?)\s*夜(?:单)?/g)].reduce((sum, match) => sum + Number(match[1]), 0)
+        : 0;
+      if (!nightUnits) return;
+      const addons = [...new Set([...(Array.isArray(order.addons) ? order.addons : []), "night"])] as Input["addons"];
+      const existingUnits = order.addonUnits && typeof order.addonUnits === "object" && !Array.isArray(order.addonUnits)
+        ? order.addonUnits as Record<string, number>
+        : {};
+      const addonUnits = { ...existingUnits, night: nightUnits };
+      const input = {
+        type: order.type,
+        date: order.date,
+        time: order.time,
+        companion: order.companion,
+        ...(order.companionId ? { companionId: order.companionId } : {}),
+        customerService: order.customerService || "",
+        ...(order.customerServiceId ? { customerServiceId: order.customerServiceId } : {}),
+        service: order.service,
+        unitPrice: Number(order.unitPrice),
+        quantity: Number(order.quantity),
+        addons,
+        addonUnits,
+        gift: Number(order.gift || 0),
+        notes: order.notes || "",
+        status: order.status,
+      } as Input;
+      await db.collection("orders").updateOne(
+        { _id: order._id },
+        { $set: { addons, addonUnits, ...calculate(input), updatedAt: new Date().toISOString() } },
+      );
+    }));
   }
   return db;
 }
