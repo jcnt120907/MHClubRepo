@@ -19,6 +19,8 @@ function currentMonth() {
 export default function LeaderboardPage() {
   const [month, setMonth] = useState(currentMonth);
   const [monthly, setMonthly] = useState<RankEntry[]>([]);
+  const [firstHalf, setFirstHalf] = useState<RankEntry[]>([]);
+  const [secondHalf, setSecondHalf] = useState<RankEntry[]>([]);
   const [allTime, setAllTime] = useState<RankEntry[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -34,6 +36,8 @@ export default function LeaderboardPage() {
         if (!r.ok) throw new Error(data.error);
         if (!controller.signal.aborted) {
           setMonthly(data.leaderboard.monthly);
+          setFirstHalf(data.leaderboard.firstHalf);
+          setSecondHalf(data.leaderboard.secondHalf);
           setAllTime(data.leaderboard.allTime);
         }
       })
@@ -71,7 +75,7 @@ export default function LeaderboardPage() {
             <p>{error}</p>
           </div>
         ) : (
-          <Leaderboard monthly={monthly} allTime={allTime} month={month} />
+          <Leaderboard monthly={monthly} firstHalf={firstHalf} secondHalf={secondHalf} allTime={allTime} month={month} />
         )}
       </div>
     </Workspace>

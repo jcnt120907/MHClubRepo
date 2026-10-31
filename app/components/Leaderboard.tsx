@@ -5,11 +5,11 @@ import { Check, Copy, Trophy } from "lucide-react";
 
 export type RankEntry = { id: string; name: string; count: number; earnings: number; rank: number };
 
-export default function Leaderboard({ monthly, allTime, month }: { monthly: RankEntry[]; allTime: RankEntry[]; month: string }) {
-  const [period, setPeriod] = useState<"monthly" | "allTime">("monthly");
+export default function Leaderboard({ monthly, firstHalf, secondHalf, allTime, month }: { monthly: RankEntry[]; firstHalf: RankEntry[]; secondHalf: RankEntry[]; allTime: RankEntry[]; month: string }) {
+  const [period, setPeriod] = useState<"monthly" | "firstHalf" | "secondHalf" | "allTime">("monthly");
   const [copied, setCopied] = useState<"top" | "all" | null>(null);
-  const entries = period === "monthly" ? monthly : allTime;
-  const label = period === "monthly" ? `${month} 月榜` : "总榜";
+  const entries = period === "monthly" ? monthly : period === "firstHalf" ? firstHalf : period === "secondHalf" ? secondHalf : allTime;
+  const label = period === "monthly" ? `${month} 月榜` : period === "firstHalf" ? `${month} 上半月（1–15日）` : period === "secondHalf" ? `${month} 下半月（16日–月底）` : "总榜";
 
   const copyChatRecord = async (kind: "top" | "all") => {
     const selected = kind === "top" ? entries.slice(0, 10) : entries;
@@ -40,6 +40,8 @@ export default function Leaderboard({ monthly, allTime, month }: { monthly: Rank
       <div className="rank-actions">
         <div className="rank-switch">
           <button className={period === "monthly" ? "selected" : ""} onClick={() => setPeriod("monthly")}>每月</button>
+          <button className={period === "firstHalf" ? "selected" : ""} onClick={() => setPeriod("firstHalf")}>上半月</button>
+          <button className={period === "secondHalf" ? "selected" : ""} onClick={() => setPeriod("secondHalf")}>下半月</button>
           <button className={period === "allTime" ? "selected" : ""} onClick={() => setPeriod("allTime")}>总量</button>
         </div>
         <button className="secondary rank-copy" onClick={() => copyChatRecord("top")}>{copied === "top" ? <Check size={16} /> : <Copy size={16} />} {copied === "top" ? "已复制" : "复制前10"}</button>
@@ -48,7 +50,7 @@ export default function Leaderboard({ monthly, allTime, month }: { monthly: Rank
     </div>
     <p className="rank-caption">{label} · 按服务时长单量排名，同单量按收入排序</p>
     <div className="rank-grid">{entries.map(entry => <div className="rank-person" key={entry.id}><span className={`rank-number podium-${entry.rank}`}>{String(entry.rank).padStart(2, "0")}</span><strong>{entry.name}</strong><div><b>{entry.count} <small>单量</small></b><span>RM {entry.earnings.toFixed(2)}</span></div></div>)}</div>
-    {!entries.length && <p className="rank-empty">{period === "monthly" ? "这个月还没有订单" : "还没有订单记录"}</p>}
+    {!entries.length && <p className="rank-empty">{period === "allTime" ? "还没有订单记录" : "这个统计期还没有订单"}</p>}
     <p className="rank-caption">显示全部陪陪 · 半小时 = 1 单量、1 小时 = 2 单量；礼物单只计入陪陪工资金额，不计单量。</p>
   </section>;
 }
