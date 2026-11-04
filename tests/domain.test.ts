@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import rows from "../data/september.json";
 import {
   calculate,
+  telegramGiftAmount,
   inputSchema,
   normalizeService,
   orderNumber,
@@ -15,6 +16,12 @@ import { settlementPeriod } from "../lib/companion-payments";
 import { nameKey } from "../lib/companion-domain";
 import { halfMonthRange } from "../lib/companion-stats";
 const base = inputSchema.parse(rows[0]);
+test("Telegram gifts multiply price by quantity", () => {
+  assert.equal(telegramGiftAmount("马卡龙 RM10 x4"), 40);
+  assert.equal(telegramGiftAmount("马卡龙 RM10 × 4"), 40);
+  assert.equal(telegramGiftAmount("马卡龙 RM10"), 10);
+  assert.equal(telegramGiftAmount(""), 0);
+});
 test("all 24 workbook records reconcile", () => {
   assert.equal(rows.length, 24);
   for (const row of rows) {

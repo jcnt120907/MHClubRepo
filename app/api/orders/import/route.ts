@@ -4,7 +4,7 @@ import { CompanionError, createCompanion, listCompanions } from "@/lib/companion
 import { nameKey } from "@/lib/companion-domain";
 import { listCustomerServices } from "@/lib/customer-services";
 import { createStoredOrderForImportedOrder } from "@/lib/stored-orders";
-import { addons, telegramServiceName, unitPriceFor, type Input } from "@/lib/domain";
+import { addons, telegramGiftAmount, telegramServiceName, unitPriceFor, type Input } from "@/lib/domain";
 
 type Parsed = { raw: string; input?: Input; requestedOrderNo?: string; storageMinutes?: number; ownerSource?: "IG" | "Telegram"; ownerId?: string; errors: string[]; warnings: string[] };
 const storageDuration = (raw: string) => {
@@ -77,7 +77,7 @@ const parseOne = (raw: string): Parsed => {
   const date = dateText ? year + "-" + dateText[2].padStart(2,"0") + "-" + dateText[1].padStart(2,"0") : "";
   const minutes = start !== null && end !== null ? ((end - start + 1440) % 1440 || 1440) : 0;
   const service = type ? telegramServiceName(type, serviceText) : "语音通话";
-  const amount = Number(giftText.match(/(?:单价|RM|¥)?\s*(\d+(?:\.\d+)?)/i)?.[1] || 0);
+  const amount = telegramGiftAmount(giftText);
   if (type === "L" && !amount) errors.push("礼物单需要可识别的金额");
   if (type === "L") uniqueAddons.splice(0, uniqueAddons.length, ...uniqueAddons.filter((key) => ["star","exclusive","popular"].includes(key)));
   if (type === "L" && /夜|续|通话/.test(serviceText)) warnings.push("礼物单已只保留礼物金额；原服务文字会存入备注");

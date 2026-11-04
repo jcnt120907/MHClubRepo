@@ -36,6 +36,10 @@ export function unitPriceFor(service: string, quantity: number) {
   return quantity === 0.5 && halfHour !== undefined ? halfHour : services[service];
 }
 export const types = { P: "陪玩", T: "语聊", L: "礼物" };
+export function telegramGiftAmount(text: string) {
+  const match = text.match(/(?:单价|RM|¥)?\s*(\d+(?:\.\d+)?)(?:\s*[x×*]\s*(\d+(?:\.\d+)?))?/i);
+  return match ? new Decimal(match[1]).times(match[2] || 1).toDecimalPlaces(2).toNumber() : 0;
+}
 export const addons = {
   night: { label: "夜单", price: 4 },
   sweet: { label: "甜蜜", price: 5 },
